@@ -1,0 +1,29 @@
+# Set the default behavior for all text files to normalize line endings.
+* text=auto
+
+# Ensure scripts have LF line endings, regardless of platform.
+*.sh text eol=lf
+*.js text eol=lf
+*.ts text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.md text eol=lf
+
+# Files that should always have CRLF line endings on checkout (useful for Windows-only files).
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Files that should be treated as binary and not modified.
+*.png binary
+*.jpg binary
+*.gif binary
+*.pdf binary
+
+# Additional file types (if applicable) for your project.
+*.sln text eol=crlf
+*.dll binary
+*.exe binary
+*.class binary
+*.jar binary
