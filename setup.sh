@@ -15,6 +15,9 @@ if [ ! -f ".git/hooks/pre-commit" ]; then
 git config core.autocrlf input
 git config core.safecrlf warn
 
+# Normalize line endings and add files to the staging area
+git add --renormalize .
+
 # Optionally, run additional checks or commands here
 EOF
 

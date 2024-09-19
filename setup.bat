@@ -11,6 +11,9 @@ echo # Configure Git to handle line endings
 echo git config core.autocrlf input
 echo git config core.safecrlf warn
 echo.
+echo # Normalize line endings and add files to the staging area
+echo git add --renormalize .
+echo.
 echo # Optionally, run additional checks or commands here
 ) > ".git\hooks\pre-commit"
 
