@@ -48,7 +48,6 @@ ehthumbs.db
 *.tmp
 
 # npm
-package-lock.json
 yarn.lock
 
 # TypeScript
