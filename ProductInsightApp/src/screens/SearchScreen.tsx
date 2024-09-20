@@ -5,12 +5,9 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Dimensions,
   FlatList,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
-
-const {width} = Dimensions.get('window');
 
 const SearchScreen: React.FC = () => {
   const [query, setQuery] = useState<string>('');
