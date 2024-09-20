@@ -20,40 +20,44 @@ type TabParamList = {
 // Bottom Tab Navigator
 const Tab = createBottomTabNavigator<TabParamList>();
 
-// Navicons configuration
-const tabBarIcon =
-  (route: keyof TabParamList) =>
-  ({color}: {color: string}) => {
-    let iconName: string;
+// Named TabBarIcon function
+function TabBarIcon({
+  color,
+  route,
+}: {
+  color: string;
+  route: keyof TabParamList;
+}) {
+  let iconName: string;
 
-    switch (route) {
-      case 'Home':
-        iconName = 'home';
-        break;
-      case 'Search':
-        iconName = 'search';
-        break;
-      case 'History':
-        iconName = 'history';
-        break;
-      default:
-        iconName = 'home';
-        break;
-    }
+  switch (route) {
+    case 'Home':
+      iconName = 'home';
+      break;
+    case 'Search':
+      iconName = 'search';
+      break;
+    case 'History':
+      iconName = 'history';
+      break;
+    default:
+      iconName = 'home';
+      break;
+  }
 
-    const iconSize = 30;
+  const iconSize = 30;
+  return <Icon name={iconName} size={iconSize} color={color} />;
+}
 
-    return <Icon name={iconName} size={iconSize} color={color} />;
-  };
-
-// App component
 function App(): React.JSX.Element {
   return (
     <NavigationContainer>
       <Tab.Navigator
         screenOptions={({route}) => ({
           headerShown: false,
-          tabBarIcon: tabBarIcon(route.name as keyof TabParamList),
+          tabBarIcon: props => (
+            <TabBarIcon route={route.name as keyof TabParamList} {...props} />
+          ),
           tabBarActiveTintColor: 'white',
           tabBarInactiveTintColor: 'gray',
           tabBarStyle: {
@@ -61,7 +65,7 @@ function App(): React.JSX.Element {
             height: 60,
             padding: 10,
           },
-          tabBarLabel: () => null, // to hide labels
+          tabBarLabel: () => null, // Hide labels
         })}>
         <Tab.Screen name="Home" component={HomeScreen} />
         <Tab.Screen name="Search" component={SearchScreen} />
@@ -69,7 +73,7 @@ function App(): React.JSX.Element {
         <Tab.Screen
           name="Result"
           component={ResultScreen}
-          options={{tabBarButton: () => null}} // hiding it from the bottom nav
+          options={{tabBarButton: () => null}} // Hide from bottom nav
         />
       </Tab.Navigator>
     </NavigationContainer>
