@@ -52,14 +52,13 @@ function App(): React.JSX.Element {
     <NavigationContainer>
       <Tab.Navigator
         screenOptions={({route}) => ({
+          headerShown: false,
           tabBarIcon: tabBarIcon(route.name as keyof TabParamList),
           tabBarActiveTintColor: 'white',
           tabBarInactiveTintColor: 'gray',
           tabBarStyle: {
             backgroundColor: '#2B7A5A',
             height: 60,
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
             padding: 10,
           },
           tabBarLabel: () => null, // to hide labels
