@@ -55,16 +55,19 @@ function App(): React.JSX.Element {
       <Tab.Navigator
         screenOptions={({route}) => ({
           headerShown: false,
-          tabBarIcon: props => (
-            <TabBarIcon route={route.name as keyof TabParamList} {...props} />
+          tabBarIcon: (
+            {color}, // Removed size from here
+          ) => (
+            <TabBarIcon
+              route={route.name as keyof TabParamList}
+              color={color}
+            />
           ),
           tabBarActiveTintColor: 'white',
           tabBarInactiveTintColor: 'gray',
           tabBarStyle: {
             backgroundColor: '#2B7A5A',
             height: 60,
-            borderTopLeftRadius: 20,
-            borderTopRightRadius: 20,
             padding: 10,
           },
           tabBarLabel: () => null, // Hide labels
