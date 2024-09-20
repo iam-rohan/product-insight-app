@@ -12,9 +12,14 @@ module.exports = {
       jsx: true,
     },
   },
+  settings: {
+    react: {
+      version: 'detect', // Automatically detects the React version
+    },
+  },
   rules: {
     'react/no-unstable-nested-components': 'off', // Turn off the nested component warning
     '@typescript-eslint/no-unused-vars': ['warn', {argsIgnorePattern: '^_'}], // Adjust unused vars rule
-    '@typescript-eslint/no-require-imports': 'off', // Disable the require rule for this file becuase if not app won't load
+    '@typescript-eslint/no-require-imports': 'off', // Disable the require rule for this file
   },
 };
