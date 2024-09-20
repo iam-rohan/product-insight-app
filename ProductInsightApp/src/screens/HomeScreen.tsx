@@ -1,10 +1,10 @@
 import React from 'react';
 import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
-import {NavigationProp} from '@react-navigation/native';
-import Icon from 'react-native-vector-icons/FontAwesome'; // Import FontAwesome icons
+import {NavigationProp, ParamListBase} from '@react-navigation/native'; // Import ParamListBase
+import Icon from 'react-native-vector-icons/FontAwesome';
 
 type HomeScreenProps = {
-  navigation: NavigationProp<any>;
+  navigation: NavigationProp<ParamListBase>; // Replace 'any' with ParamListBase
 };
 
 const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
@@ -35,29 +35,29 @@ const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#D9D9D9', // Background color #A8D5BA
+    backgroundColor: '#D9D9D9',
     alignItems: 'center',
     justifyContent: 'center',
   },
   button: {
-    backgroundColor: '#3B7A57', // Button color #3B7A57
+    backgroundColor: '#3B7A57',
     width: 257,
     height: 50,
-    flexDirection: 'row', // Align items horizontally (text and icon)
-    justifyContent: 'space-between', // Space between text and icon
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 15, // Add padding inside the button for space
+    paddingHorizontal: 15,
     marginVertical: 25,
     borderRadius: 30,
   },
   buttonText: {
-    color: '#ffffff', // Text color #ffffff
+    color: '#ffffff',
     fontSize: 16,
     fontWeight: 'bold',
     marginLeft: 10,
   },
   icon: {
-    marginRight: 10, // Space between text and icon
+    marginRight: 10,
   },
 });
 
