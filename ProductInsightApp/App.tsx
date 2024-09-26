@@ -9,27 +9,29 @@ import HomeScreen from './src/screens/HomeScreen';
 import SearchScreen from './src/screens/SearchScreen';
 import HistoryScreen from './src/screens/HistoryScreen';
 import ResultScreen from './src/screens/ResultScreen';
-import CameraComponent from './src/components/CameraComponent'; // Import your CameraComponent
+import CameraComponent from './src/components/CameraComponent';
+import ConfirmationScreen from './src/screens/ConfirmationScreen';
 
 // Type for bottom tab navigator
 type TabParamList = {
   Home: undefined;
   Search: undefined;
   History: undefined;
-  Result: undefined;
 };
 
-// Type for stack navigator (only for Home and Camera)
-type HomeStackParamList = {
-  MainHome: undefined;
+// Type for stack navigator
+type RootStackParamList = {
   Camera: undefined;
+  Confirmation: {photos: string[]};
+  Result: undefined;
+  MainHome: undefined; //Changed the named to avoid confusion on which Home
 };
 
-// Create navigators
+// Navigators
 const Tab = createBottomTabNavigator<TabParamList>();
-const Stack = createStackNavigator<HomeStackParamList>();
+const Stack = createStackNavigator<RootStackParamList>();
 
-// Named TabBarIcon function
+// TabBarIcon function
 function TabBarIcon({
   color,
   route,
@@ -58,20 +60,17 @@ function TabBarIcon({
   return <Icon name={iconName} size={iconSize} color={color} />;
 }
 
-// Create Stack Navigator (only for Home and CameraComponent)
+// Stack Navigator for the process after Scan Ingredient
 function HomeStack() {
   return (
-    <Stack.Navigator>
-      <Stack.Screen
-        name="MainHome"
-        component={HomeScreen}
-        options={{headerShown: false}} // Hide header
-      />
-      <Stack.Screen
-        name="Camera"
-        component={CameraComponent}
-        options={{headerShown: false}} // Hide header
-      />
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+      }}>
+      <Stack.Screen name="MainHome" component={HomeScreen} />
+      <Stack.Screen name="Camera" component={CameraComponent} />
+      <Stack.Screen name="Confirmation" component={ConfirmationScreen} />
+      <Stack.Screen name="Result" component={ResultScreen} />
     </Stack.Navigator>
   );
 }
@@ -81,7 +80,7 @@ function App(): React.JSX.Element {
     <NavigationContainer>
       <Tab.Navigator
         screenOptions={({route}) => ({
-          headerShown: false, // Hide the header in the tab navigation
+          headerShown: false,
           tabBarIcon: ({color}) => (
             <TabBarIcon
               route={route.name as keyof TabParamList}
@@ -91,21 +90,16 @@ function App(): React.JSX.Element {
           tabBarActiveTintColor: 'white',
           tabBarInactiveTintColor: 'gray',
           tabBarStyle: {
-            backgroundColor: '#2B7A5A', // Maintain your custom style
+            backgroundColor: '#2B7A5A',
             height: 60,
             padding: 10,
           },
-          tabBarLabel: () => null, // Hide labels
+          tabBarLabel: () => null,
         })}>
         {/* Use HomeStack for Home to include Camera in the stack */}
         <Tab.Screen name="Home" component={HomeStack} />
         <Tab.Screen name="Search" component={SearchScreen} />
         <Tab.Screen name="History" component={HistoryScreen} />
-        <Tab.Screen
-          name="Result"
-          component={ResultScreen}
-          options={{tabBarButton: () => null}} // Hide from bottom nav
-        />
       </Tab.Navigator>
     </NavigationContainer>
   );
