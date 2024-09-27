@@ -22,44 +22,61 @@ const db: SQLiteDatabase = SQLite.openDatabase(
 // Create the photos table if it doesn't exist
 const createTable = () => {
   db.transaction((tx: Transaction) => {
-    tx.executeSql(
-      `CREATE TABLE IF NOT EXISTS photos (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          uri TEXT NOT NULL
-        );`,
-      [],
-      () => {
-        console.log('Table created successfully');
-      },
-      (tx: Transaction, error: SQLError) => {
-        console.error('Error creating table:', error);
-      },
-    );
+    tx.executeSql(`DROP TABLE IF EXISTS photos;`, [], () => {
+      console.log('Existing photos table dropped.');
+      // Now create the new table
+      tx.executeSql(
+        `CREATE TABLE IF NOT EXISTS photos (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                uri TEXT NOT NULL,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                latitude REAL,
+                longitude REAL,
+                fileSize INTEGER,
+                format TEXT,
+                notes TEXT
+              );`,
+        [],
+        () => {
+          console.log('Table created successfully');
+        },
+        (tx: Transaction, error: SQLError) => {
+          console.error('Error creating table:', error);
+        },
+      );
+    });
   });
 };
 
 // Store a photo URI in the database
-const storePhoto = (uri: string): Promise<void> => {
-  console.log('Storing photo with URI:', uri); // Log the URI before storing
+const storePhoto = (
+  uri: string,
+  latitude?: number,
+  longitude?: number,
+  fileSize?: number,
+  format?: string,
+  notes?: string,
+): Promise<void> => {
+  console.log('Storing photo with URI:', uri);
   return new Promise((resolve, reject) => {
     db.transaction(
       (tx: Transaction) => {
         tx.executeSql(
-          `INSERT INTO photos (uri) VALUES (?);`,
-          [uri],
+          `INSERT INTO photos (uri, latitude, longitude, fileSize, format, notes) VALUES (?, ?, ?, ?, ?, ?);`,
+          [uri, latitude, longitude, fileSize, format, notes],
           () => {
             console.log('Photo stored successfully:', uri);
-            resolve(); // Resolve promise on success
+            resolve();
           },
           (tx: Transaction, error: SQLError) => {
-            console.error('Error storing photo:', error.message || error); // Improved error logging
-            reject(error); // Reject promise on error
+            console.error('Error storing photo:', error.message || error);
+            reject(error);
           },
         );
       },
       error => {
-        console.error('Transaction error:', error.message || error); // Log transaction error if any
-        reject(error); // Reject promise on transaction error
+        console.error('Transaction error:', error.message || error);
+        reject(error);
       },
     );
   });
