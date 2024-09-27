@@ -24,7 +24,7 @@ type RootStackParamList = {
   Camera: undefined;
   Confirmation: {photos: string[]};
   Result: undefined;
-  MainHome: undefined; //Changed the named to avoid confusion on which Home
+  MainHome: undefined; // Renamed to avoid confusion
 };
 
 // Navigators

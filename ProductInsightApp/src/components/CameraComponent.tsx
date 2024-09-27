@@ -3,6 +3,7 @@ import {View, TouchableOpacity, Image, StyleSheet, Text} from 'react-native';
 import {Camera, useCameraDevices} from 'react-native-vision-camera';
 import {useNavigation} from '@react-navigation/native';
 import {StackNavigationProp} from '@react-navigation/stack';
+import RNFS from 'react-native-fs'; // Add this for file system access
 
 // Navigation params type
 type RootStackParamList = {
@@ -43,9 +44,16 @@ const CameraComponent: React.FC = () => {
 
         console.log(`Captured photo path: ${photo.path}`);
 
+        // Save photo to local storage
+        const newPhotoPath = `${
+          RNFS.DocumentDirectoryPath
+        }/photo_${Date.now()}.jpg`;
+        await RNFS.moveFile(photo.path, newPhotoPath);
+        console.log(`Photo saved to: ${newPhotoPath}`);
+
         // Only updates state and navigates after taking the photos
         setPhotos(prevPhotos => {
-          const newPhotos = [...prevPhotos, photo.path];
+          const newPhotos = [...prevPhotos, newPhotoPath];
 
           // Check if two photos have been taken
           if (newPhotos.length === 2) {
@@ -57,7 +65,7 @@ const CameraComponent: React.FC = () => {
           return newPhotos;
         });
       } catch (error) {
-        console.error('Error taking photo:', error);
+        console.error('Error taking or saving photo:', error);
       }
     }
   };
@@ -100,7 +108,7 @@ const CameraComponent: React.FC = () => {
         {photos.map((photo, index) => (
           <Image
             key={index}
-            source={{uri: photo}}
+            source={{uri: `file://${photo}`}} // Ensure the correct format for local file URI
             style={styles.preview}
             resizeMode="cover"
           />

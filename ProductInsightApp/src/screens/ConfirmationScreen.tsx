@@ -6,9 +6,11 @@ import {
   Text,
   ActivityIndicator,
   TouchableOpacity,
+  Alert, // Import Alert from react-native
 } from 'react-native';
 import {RouteProp} from '@react-navigation/native';
 import {StackNavigationProp} from '@react-navigation/stack';
+import {storePhoto} from '../database/database'; // Import the storePhoto function
 
 type RootStackParamList = {
   Home: undefined;
@@ -44,16 +46,28 @@ const ConfirmationScreen: React.FC<ConfirmationScreenProps> = ({
     navigation.replace('Camera');
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     console.log('Photos confirmed');
-    navigation.navigate('Result'); // Navigate to Result screen
+    // Store each confirmed photo in the database
+    try {
+      for (const photo of images) {
+        await storePhoto(photo); // Store each photo path
+      }
+      navigation.navigate('Result'); // Navigate to Result screen
+    } catch (error) {
+      console.error('Error storing photos:', error);
+      Alert.alert(
+        'Error',
+        'There was an error saving the photos. Please try again.',
+      ); // Use Alert instead of alert
+    }
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Confirm Your Photos</Text>
       {isLoading ? (
-        <ActivityIndicator size="large" color="#0000ff" /> // Spinner while loading
+        <ActivityIndicator size="large" color="#0000ff" />
       ) : (
         <View style={styles.imageContainer}>
           {images.map((uri, index) => (
