@@ -17,7 +17,9 @@ const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
         <Icon name="search" size={20} color="#ffffff" style={styles.icon} />
       </TouchableOpacity>
 
-      <TouchableOpacity style={styles.button}>
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => navigation.navigate('Camera')}>
         <Text style={styles.buttonText}>Scan Ingredient</Text>
         <Icon name="camera" size={15} color="#ffffff" style={styles.icon} />
       </TouchableOpacity>
