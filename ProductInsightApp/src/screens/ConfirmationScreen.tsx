@@ -9,7 +9,9 @@ import {
 } from 'react-native';
 import {RouteProp} from '@react-navigation/native';
 import {StackNavigationProp} from '@react-navigation/stack';
+import {storePhotos, initDatabase} from '../database'; // Import the storePhotos and initDatabase functions
 
+// Define the parameter list for navigation
 type RootStackParamList = {
   Home: undefined;
   Camera: undefined;
@@ -17,6 +19,7 @@ type RootStackParamList = {
   Confirmation: {photos: string[]};
 };
 
+// Define the props for the ConfirmationScreen
 type ConfirmationScreenProps = {
   route: RouteProp<RootStackParamList, 'Confirmation'>;
   navigation: StackNavigationProp<RootStackParamList, 'Confirmation'>;
@@ -26,27 +29,39 @@ const ConfirmationScreen: React.FC<ConfirmationScreenProps> = ({
   route,
   navigation,
 }) => {
-  const {photos} = route.params;
+  const {photos} = route.params; // Destructure the photos from the route params
   const [images, setImages] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    // Initialize the database
+    const initializeDatabase = async () => {
+      await initDatabase(); // Ensure the database is initialized
       const validImages = photos.map(photo => `file://${photo}`);
       setImages(validImages);
       setIsLoading(false);
-    }, 1000);
+    };
 
-    return () => clearTimeout(timer);
+    initializeDatabase();
   }, [photos]);
 
   const handleRetake = () => {
-    navigation.replace('Camera');
+    navigation.replace('Camera'); // Navigate back to the camera
   };
 
-  const handleConfirm = () => {
-    console.log('Photos confirmed');
-    navigation.navigate('Result'); // Navigate to Result screen
+  const handleConfirm = async () => {
+    try {
+      console.log('Photos confirmed:', images);
+      // Store photos in the database
+      const coverPhoto = images[0]; // First image as cover photo
+      const ocrPhoto = images[1]; // Second image as OCR photo
+
+      await storePhotos(coverPhoto, ocrPhoto); // Store cover and OCR photos
+      console.log('Photos stored successfully');
+      navigation.navigate('Result'); // Navigate to the Result screen
+    } catch (error) {
+      console.error('Error storing photos:', error);
+    }
   };
 
   return (
@@ -95,11 +110,12 @@ const styles = StyleSheet.create({
     padding: '3%',
   },
   image: {
-    width: '55%',
+    width: '45%', // Adjusted width for better fit
     height: '100%',
     borderWidth: 1,
     borderColor: '#fff',
     margin: 5,
+    borderRadius: 8, // Optional: added border radius for aesthetics
   },
   buttonContainer: {
     flex: 1,
