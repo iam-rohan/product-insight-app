@@ -12,7 +12,7 @@ import HistoryScreen from './src/screens/HistoryScreen';
 import ResultScreen from './src/screens/ResultScreen';
 import CameraComponent from './src/components/CameraComponent';
 import ConfirmationScreen from './src/screens/ConfirmationScreen';
-import {initDatabase} from './src/database'; // Import the initDatabase function
+import {initDatabase} from './src/database/database'; // Import the initDatabase function
 
 // Type for bottom tab navigator
 type TabParamList = {

@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import {RouteProp} from '@react-navigation/native';
 import {StackNavigationProp} from '@react-navigation/stack';
-import {storePhotos, initDatabase} from '../database'; // Import the storePhotos and initDatabase functions
+import {storePhotos, initDatabase} from '../database/database'; // Import the storePhotos and initDatabase functions
 
 // Define the parameter list for navigation
 type RootStackParamList = {
@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
     padding: '3%',
   },
   image: {
-    width: '45%', // Adjusted width for better fit
+    width: '50%', // Adjusted width for better fit
     height: '100%',
     borderWidth: 1,
     borderColor: '#fff',

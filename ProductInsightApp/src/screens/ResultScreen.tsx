@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import {getCoverPhoto} from '../database'; // Import the function to get cover photo from the database
+import {getCoverPhoto} from '../database/database'; // Import the function to get cover photo from the database
 
 type RankType = 'A' | 'B' | 'C' | 'D' | 'E';
 
