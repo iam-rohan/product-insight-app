@@ -1,4 +1,5 @@
-import * as React from 'react';
+import * as React from 'react'; // Importing React
+import {useEffect} from 'react'; // Importing useEffect
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {NavigationContainer} from '@react-navigation/native';
 import {createStackNavigator} from '@react-navigation/stack';
@@ -11,6 +12,7 @@ import HistoryScreen from './src/screens/HistoryScreen';
 import ResultScreen from './src/screens/ResultScreen';
 import CameraComponent from './src/components/CameraComponent';
 import ConfirmationScreen from './src/screens/ConfirmationScreen';
+import {initDatabase} from './src/database/database'; // Import the initDatabase function
 
 // Type for bottom tab navigator
 type TabParamList = {
@@ -24,7 +26,7 @@ type RootStackParamList = {
   Camera: undefined;
   Confirmation: {photos: string[]};
   Result: undefined;
-  MainHome: undefined; //Changed the named to avoid confusion on which Home
+  MainHome: undefined; // Renamed to avoid confusion
 };
 
 // Navigators
@@ -76,6 +78,15 @@ function HomeStack() {
 }
 
 function App(): React.JSX.Element {
+  useEffect(() => {
+    // Initialize the database when the app starts
+    const initializeApp = async () => {
+      await initDatabase(); // Ensure the database is initialized
+    };
+
+    initializeApp(); // Call the initialization function
+  }, []);
+
   return (
     <NavigationContainer>
       <Tab.Navigator

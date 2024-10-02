@@ -43,13 +43,13 @@ const CameraComponent: React.FC = () => {
 
         console.log(`Captured photo path: ${photo.path}`);
 
-        // Only updates state and navigates after taking the photos
+        // Ensure the path is prefixed with 'file://' for proper URI handling
+        const photoUri = `file://${photo.path}`;
         setPhotos(prevPhotos => {
-          const newPhotos = [...prevPhotos, photo.path];
+          const newPhotos = [...prevPhotos, photoUri];
 
-          // Check if two photos have been taken
+          // Navigate to confirmation screen if two photos are captured
           if (newPhotos.length === 2) {
-            // Timeout to navigate after state is updated
             setTimeout(() => {
               navigation.navigate('Confirmation', {photos: newPhotos});
             }, 100);
@@ -126,6 +126,9 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     margin: 5,
+    borderRadius: 8, // Optional: add border radius for aesthetics
+    borderWidth: 1, // Optional: add border for better visibility
+    borderColor: '#ccc', // Optional: border color
   },
   errorContainer: {
     flex: 1,

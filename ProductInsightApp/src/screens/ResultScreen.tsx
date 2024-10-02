@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -7,26 +7,31 @@ import {
   Image,
   TouchableOpacity,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/FontAwesome';  // Add this import
+import Icon from 'react-native-vector-icons/FontAwesome';
+import {getCoverPhoto} from '../database/database'; // Import the function to get cover photo from the database
 
 type RankType = 'A' | 'B' | 'C' | 'D' | 'E';
 
 const ResultScreen = () => {
   const [showNegatives, setShowNegatives] = useState(true);
   const [showPositives, setShowPositives] = useState(true);
+  const [coverPhoto, setCoverPhoto] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true); // Loading state for cover photo
 
+  // Negative and Positive items
   const negatives = [
-    { text: 'Phosphoric Acid', color: 'red' },
-    { text: 'High Sugar', color: 'red' }, // Set the same color for all
-    { text: 'Caffeine', color: 'red' },   // Set the same color for all
+    {text: 'Phosphoric Acid', color: 'red'},
+    {text: 'High Sugar', color: 'red'},
+    {text: 'Caffeine', color: 'red'},
   ];
 
   const positives = [
-    { text: 'Low Calories', color: 'green' },
-    { text: 'Vitamin C', color: 'green' },
-    { text: 'No Artificial Flavors', color: 'green' },
+    {text: 'Low Calories', color: 'green'},
+    {text: 'Vitamin C', color: 'green'},
+    {text: 'No Artificial Flavors', color: 'green'},
   ];
 
+  // Get rank color based on rank type
   const getRankColor = (rank: RankType) => {
     switch (rank) {
       case 'A':
@@ -44,22 +49,21 @@ const ResultScreen = () => {
     }
   };
 
-  const Ranker = ({ rank }: { rank: RankType }) => {
+  // Ranker component to display ranks
+  const Ranker = ({rank}: {rank: RankType}) => {
     const ranks: RankType[] = ['A', 'B', 'C', 'D', 'E'];
     return (
       <View style={styles.rankContainer}>
-        {ranks.map((r) => (
+        {ranks.map(r => (
           <View
             key={r}
             style={[
               styles.rankBox,
               {
                 backgroundColor: getRankColor(r),
-                transform: r === rank ? [{ scale: 1.5 }] : [{ scale: 1 }],
-                marginHorizontal: r === rank ? 5 : 0,
+                transform: r === rank ? [{scale: 1.5}] : [{scale: 1}],
               },
-            ]}
-          >
+            ]}>
             <Text style={styles.rankText}>{r}</Text>
           </View>
         ))}
@@ -67,14 +71,28 @@ const ResultScreen = () => {
     );
   };
 
+  // Fetch cover photo from the database on component mount
+  useEffect(() => {
+    const fetchCoverPhoto = async () => {
+      const photoPath = await getCoverPhoto(); // Get cover photo path from database
+      setCoverPhoto(photoPath);
+      setLoading(false); // Set loading to false after fetching photo
+    };
+
+    fetchCoverPhoto();
+  }, []);
+
   return (
     <View style={styles.container}>
       <View style={styles.headers}></View>
       <View style={styles.header}>
-        <Image
-          source={require('../assets/coca-cola.jpg')}
-          style={styles.productImage}
-        />
+        {loading ? (
+          <Text>Loading...</Text>
+        ) : coverPhoto ? (
+          <Image source={{uri: coverPhoto}} style={styles.productImage} /> // Use cover photo from database
+        ) : (
+          <Text>No Cover Photo Available</Text> // Display if no cover photo is found
+        )}
         <View style={styles.headerText}>
           <Text style={styles.title}>
             <Text>Coca </Text>
@@ -90,8 +108,11 @@ const ResultScreen = () => {
           <TouchableOpacity onPress={() => setShowNegatives(!showNegatives)}>
             <View style={styles.sectionTitleContainer}>
               <Text style={styles.sectionTitle}>Negatives</Text>
-              {/* Replaced arrow with FontAwesome icon */}
-              <Icon name={showNegatives ? 'chevron-up' : 'chevron-down'} size={20} color="#333" />
+              <Icon
+                name={showNegatives ? 'chevron-up' : 'chevron-down'}
+                size={20}
+                color="#333"
+              />
             </View>
           </TouchableOpacity>
           {showNegatives && (
@@ -99,7 +120,7 @@ const ResultScreen = () => {
               {negatives.map((item, index) => (
                 <View key={index} style={styles.listItem}>
                   <Text style={styles.negativeText}>{item.text}</Text>
-                  <View style={[styles.dot, { backgroundColor: item.color }]} />
+                  <View style={[styles.dot, {backgroundColor: item.color}]} />
                 </View>
               ))}
             </View>
@@ -111,8 +132,11 @@ const ResultScreen = () => {
           <TouchableOpacity onPress={() => setShowPositives(!showPositives)}>
             <View style={styles.sectionTitleContainer}>
               <Text style={styles.sectionTitle}>Positives</Text>
-              {/* Replaced arrow with FontAwesome icon */}
-              <Icon name={showPositives ? 'chevron-up' : 'chevron-down'} size={20} color="#333" />
+              <Icon
+                name={showPositives ? 'chevron-up' : 'chevron-down'}
+                size={20}
+                color="#333"
+              />
             </View>
           </TouchableOpacity>
           {showPositives && (
@@ -120,7 +144,7 @@ const ResultScreen = () => {
               {positives.map((item, index) => (
                 <View key={index} style={styles.listItem}>
                   <Text style={styles.positiveText}>{item.text}</Text>
-                  <View style={[styles.dot, { backgroundColor: item.color }]} />
+                  <View style={[styles.dot, {backgroundColor: item.color}]} />
                 </View>
               ))}
             </View>
@@ -145,7 +169,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: 15,
     alignItems: 'center',
-    marginTop: 20, 
+    marginTop: 20,
   },
   productImage: {
     width: 150,
@@ -160,7 +184,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 30,
     fontWeight: 'bold',
-    fontFamily: 'Ayar Regular',
     marginBottom: 10,
     color: '#222222',
   },
