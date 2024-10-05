@@ -8,17 +8,23 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import {getCoverPhoto} from '../database/database'; // Import the function to get cover photo from the database
+import {getCoverPhoto} from '../database/database';
+import {RouteProp} from '@react-navigation/native'; // Import RouteProp for navigation types
 
 type RankType = 'A' | 'B' | 'C' | 'D' | 'E';
 
-const ResultScreen = () => {
+type ResultScreenProps = {
+  route: RouteProp<{params: {productName: string; ingredients: string}}>;
+};
+
+const ResultScreen: React.FC<ResultScreenProps> = ({route}) => {
   const [showNegatives, setShowNegatives] = useState(true);
   const [showPositives, setShowPositives] = useState(true);
   const [coverPhoto, setCoverPhoto] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true); // Loading state for cover photo
+  const [loading, setLoading] = useState(true);
 
-  // Negative and Positive items
+  const {productName, ingredients} = route.params || {}; // Ensure route.params exists
+
   const negatives = [
     {text: 'Phosphoric Acid', color: 'red'},
     {text: 'High Sugar', color: 'red'},
@@ -31,7 +37,6 @@ const ResultScreen = () => {
     {text: 'No Artificial Flavors', color: 'green'},
   ];
 
-  // Get rank color based on rank type
   const getRankColor = (rank: RankType) => {
     switch (rank) {
       case 'A':
@@ -49,8 +54,7 @@ const ResultScreen = () => {
     }
   };
 
-  // Ranker component to display ranks
-  const Ranker = ({rank}: {rank: RankType}) => {
+  const Ranker: React.FC<{rank: RankType}> = ({rank}) => {
     const ranks: RankType[] = ['A', 'B', 'C', 'D', 'E'];
     return (
       <View style={styles.rankContainer}>
@@ -71,14 +75,12 @@ const ResultScreen = () => {
     );
   };
 
-  // Fetch cover photo from the database on component mount
   useEffect(() => {
     const fetchCoverPhoto = async () => {
-      const photoPath = await getCoverPhoto(); // Get cover photo path from database
+      const photoPath = await getCoverPhoto();
       setCoverPhoto(photoPath);
-      setLoading(false); // Set loading to false after fetching photo
+      setLoading(false);
     };
-
     fetchCoverPhoto();
   }, []);
 
@@ -89,20 +91,24 @@ const ResultScreen = () => {
         {loading ? (
           <Text>Loading...</Text>
         ) : coverPhoto ? (
-          <Image source={{uri: coverPhoto}} style={styles.productImage} /> // Use cover photo from database
+          <Image source={{uri: coverPhoto}} style={styles.productImage} />
         ) : (
-          <Text>No Cover Photo Available</Text> // Display if no cover photo is found
+          <Text>No Cover Photo Available</Text>
         )}
         <View style={styles.headerText}>
-          <Text style={styles.title}>
-            <Text>Coca </Text>
-            <Text>Cola</Text>
-          </Text>
+          <Text style={styles.title}>{productName || 'Unknown Product'}</Text>
           <Ranker rank="C" />
         </View>
       </View>
 
       <ScrollView style={styles.content}>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Recognized Ingredients:</Text>
+          <Text style={styles.ingredientsText}>
+            {ingredients || 'No Ingredients Available'}
+          </Text>
+        </View>
+
         {/* Negatives Section */}
         <View style={styles.section}>
           <TouchableOpacity onPress={() => setShowNegatives(!showNegatives)}>
@@ -241,6 +247,11 @@ const styles = StyleSheet.create({
     height: 12,
     borderRadius: 6,
     marginLeft: 10,
+  },
+  ingredientsText: {
+    fontSize: 16,
+    color: '#444444',
+    marginBottom: 20,
   },
 });
 

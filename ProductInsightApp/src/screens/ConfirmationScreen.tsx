@@ -9,13 +9,14 @@ import {
 } from 'react-native';
 import {RouteProp} from '@react-navigation/native';
 import {StackNavigationProp} from '@react-navigation/stack';
-import {storePhotos, initDatabase} from '../database/database'; // Import the storePhotos and initDatabase functions
+import {storePhotos, initDatabase} from '../database/database';
+import {recognizeTextFromImage} from '../services/mlkit'; // Import ML Kit service
 
 // Define the parameter list for navigation
 type RootStackParamList = {
   Home: undefined;
   Camera: undefined;
-  Result: undefined;
+  Result: {productName: string; ingredients: string};
   Confirmation: {photos: string[]};
 };
 
@@ -34,7 +35,6 @@ const ConfirmationScreen: React.FC<ConfirmationScreenProps> = ({
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Initialize the database
     const initializeDatabase = async () => {
       await initDatabase(); // Ensure the database is initialized
       const validImages = photos.map(photo => `file://${photo}`);
@@ -46,21 +46,31 @@ const ConfirmationScreen: React.FC<ConfirmationScreenProps> = ({
   }, [photos]);
 
   const handleRetake = () => {
-    navigation.replace('Camera'); // Navigate back to the camera
+    navigation.replace('Camera');
   };
 
   const handleConfirm = async () => {
     try {
       console.log('Photos confirmed:', images);
+
       // Store photos in the database
       const coverPhoto = images[0]; // First image as cover photo
       const ocrPhoto = images[1]; // Second image as OCR photo
+      await storePhotos(coverPhoto, ocrPhoto);
 
-      await storePhotos(coverPhoto, ocrPhoto); // Store cover and OCR photos
       console.log('Photos stored successfully');
-      navigation.navigate('Result'); // Navigate to the Result screen
+
+      // Recognize text from both photos
+      const productName = await recognizeTextFromImage(coverPhoto); // For product name
+      const ingredients = await recognizeTextFromImage(ocrPhoto); // For ingredient list
+
+      // Navigate to Result screen, passing recognized productName and ingredients
+      navigation.navigate('Result', {
+        productName: productName || 'Unknown',
+        ingredients: ingredients || 'Not available',
+      });
     } catch (error) {
-      console.error('Error storing photos:', error);
+      console.error('Error during confirmation:', error);
     }
   };
 
@@ -68,7 +78,7 @@ const ConfirmationScreen: React.FC<ConfirmationScreenProps> = ({
     <View style={styles.container}>
       <Text style={styles.header}>Confirm Your Photos</Text>
       {isLoading ? (
-        <ActivityIndicator size="large" color="#0000ff" /> // Spinner while loading
+        <ActivityIndicator size="large" color="#0000ff" />
       ) : (
         <View style={styles.imageContainer}>
           {images.map((uri, index) => (
