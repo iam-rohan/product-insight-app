@@ -1,10 +1,10 @@
 import React, {useState, useEffect, useRef} from 'react';
 import {View, TouchableOpacity, Image, StyleSheet, Text} from 'react-native';
 import {Camera, useCameraDevices} from 'react-native-vision-camera';
+import ImageCropPicker from 'react-native-image-crop-picker';
 import {useNavigation} from '@react-navigation/native';
 import {StackNavigationProp} from '@react-navigation/stack';
 
-// Navigation params type
 type RootStackParamList = {
   Camera: undefined;
   Confirmation: {photos: string[]};
@@ -21,12 +21,12 @@ const CameraComponent: React.FC = () => {
   const navigation = useNavigation<NavigationProps>();
 
   const devices = useCameraDevices();
-  const device = devices.find(d => d.position === 'back');
+  const device = devices[0]; // Assuming the first device in the array is the back camera
 
   useEffect(() => {
     const requestCameraPermission = async () => {
       const status = await Camera.requestCameraPermission();
-      setCameraPermission(status === 'granted');
+      setCameraPermission(status === 'granted'); // Check if the status is 'granted'
     };
     requestCameraPermission();
   }, []);
@@ -36,23 +36,32 @@ const CameraComponent: React.FC = () => {
       try {
         const photo = await cameraRef.current.takePhoto({
           enableAutoDistortionCorrection: true,
-          enableAutoRedEyeReduction: false,
           enableShutterSound: true,
           flash: 'auto',
         });
 
-        console.log(`Captured photo path: ${photo.path}`);
-
-        // Ensure the path is prefixed with 'file://' for proper URI handling
         const photoUri = `file://${photo.path}`;
         setPhotos(prevPhotos => {
           const newPhotos = [...prevPhotos, photoUri];
 
-          // Navigate to confirmation screen if two photos are captured
+          // Crop only the second photo
           if (newPhotos.length === 2) {
-            setTimeout(() => {
-              navigation.navigate('Confirmation', {photos: newPhotos});
-            }, 100);
+            ImageCropPicker.openCropper({
+              path: newPhotos[1],
+              width: 400,
+              height: 400,
+              freeStyleCropEnabled: true, // Enable adjustable rectangle
+              cropping: true,
+              mediaType: 'photo',
+            })
+              .then(croppedImage => {
+                const croppedPhotoUri = croppedImage.path;
+                newPhotos[1] = croppedPhotoUri; // Update second photo with cropped version
+                navigation.navigate('Confirmation', {photos: newPhotos});
+              })
+              .catch(error => {
+                console.error('Error cropping photo:', error);
+              });
           }
           return newPhotos;
         });
@@ -62,25 +71,17 @@ const CameraComponent: React.FC = () => {
     }
   };
 
-  // Loading state while checking permissions
+  // Render loading, no access, and camera UI conditions
   if (cameraPermission === null) {
-    return (
-      <View style={styles.errorContainer}>
-        <Text>Loading...</Text>
-      </View>
-    );
+    return <Text>Loading...</Text>;
   }
 
   if (cameraPermission === false) {
-    return (
-      <View style={styles.errorContainer}>
-        <Text>No access to camera</Text>
-      </View>
-    );
+    return <Text>No access to camera</Text>;
   }
 
-  if (device == null) {
-    return <Text>No back camera available</Text>;
+  if (!device) {
+    return <Text>No camera available</Text>;
   }
 
   return (
@@ -95,7 +96,6 @@ const CameraComponent: React.FC = () => {
       <TouchableOpacity style={styles.button} onPress={handleTakePhoto}>
         <Text style={styles.buttonText}>Take Photo</Text>
       </TouchableOpacity>
-      {/* Show thumbnails of captured photos */}
       <View style={styles.previewContainer}>
         {photos.map((photo, index) => (
           <Image
@@ -126,22 +126,17 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     margin: 5,
-    borderRadius: 8, // Optional: add border radius for aesthetics
-    borderWidth: 1, // Optional: add border for better visibility
-    borderColor: '#ccc', // Optional: border color
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ccc',
   },
   button: {
     backgroundColor: '#CAE5D5',
     borderRadius: 10,
     padding: 10,
     width: '40%',
-    alignSelf: 'center', // Center the button horizontally
-    marginVertical: 10, // Add some vertical margin
+    alignSelf: 'center',
+    marginVertical: 10,
   },
   buttonText: {
     color: 'black',
