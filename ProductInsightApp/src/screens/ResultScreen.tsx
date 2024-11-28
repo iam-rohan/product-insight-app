@@ -10,12 +10,16 @@ import {
 import Icon from 'react-native-vector-icons/FontAwesome';
 import {getCoverPhoto} from '../database/database';
 import {RouteProp} from '@react-navigation/native'; // Import RouteProp for navigation types
+import { RootStackParamList } from '../../App'; 
 
-type RankType = 'A' | 'B' | 'C' | 'D' | 'E';
+// Define the props types for ResultScreen component
+type ResultScreenRouteProp = RouteProp<RootStackParamList, 'Result'>;
 
 type ResultScreenProps = {
-  route: RouteProp<{params: {productName: string; ingredients: string}}>;
+  route: ResultScreenRouteProp;
 };
+
+type RankType = 'A' | 'B' | 'C' | 'D' | 'E';
 
 const ResultScreen: React.FC<ResultScreenProps> = ({route}) => {
   const [showNegatives, setShowNegatives] = useState(true);

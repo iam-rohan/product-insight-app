@@ -1,8 +1,8 @@
 import * as React from 'react'; // Importing React
-import {useEffect} from 'react'; // Importing useEffect
-import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
-import {NavigationContainer} from '@react-navigation/native';
-import {createStackNavigator} from '@react-navigation/stack';
+import { useEffect } from 'react'; // Importing useEffect
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/FontAwesome';
 
 // Importing Screens
@@ -12,7 +12,7 @@ import HistoryScreen from './src/screens/HistoryScreen';
 import ResultScreen from './src/screens/ResultScreen';
 import CameraComponent from './src/components/CameraComponent';
 import ConfirmationScreen from './src/screens/ConfirmationScreen';
-import {initDatabase} from './src/database/database'; // Import the initDatabase function
+import { initDatabase } from './src/database/database'; // Import the initDatabase function
 
 // Type for bottom tab navigator
 type TabParamList = {
@@ -22,10 +22,10 @@ type TabParamList = {
 };
 
 // Type for stack navigator
-type RootStackParamList = {
+export type RootStackParamList = {
   Camera: undefined;
-  Confirmation: {photos: string[]};
-  Result: undefined;
+  Confirmation: { photos: string[] };
+  Result: { productName: string; ingredients: string }; // Define the parameters for Result
   MainHome: undefined; // Renamed to avoid confusion
 };
 
@@ -90,13 +90,10 @@ function App(): React.JSX.Element {
   return (
     <NavigationContainer>
       <Tab.Navigator
-        screenOptions={({route}) => ({
+        screenOptions={({ route }) => ({
           headerShown: false,
-          tabBarIcon: ({color}) => (
-            <TabBarIcon
-              route={route.name as keyof TabParamList}
-              color={color}
-            />
+          tabBarIcon: ({ color }) => (
+            <TabBarIcon route={route.name as keyof TabParamList} color={color} />
           ),
           tabBarActiveTintColor: 'white',
           tabBarInactiveTintColor: 'gray',
