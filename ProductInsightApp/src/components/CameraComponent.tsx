@@ -7,7 +7,11 @@ import {
   Text,
   Alert,
 } from 'react-native';
-import {Camera, useCameraDevices} from 'react-native-vision-camera';
+import {
+  Camera,
+  useCameraDevices,
+  CameraProps,
+} from 'react-native-vision-camera';
 import ImageCropPicker from 'react-native-image-crop-picker';
 import {useNavigation} from '@react-navigation/native';
 import {StackNavigationProp} from '@react-navigation/stack';
@@ -39,7 +43,7 @@ const CameraComponent: React.FC = () => {
   }, []);
 
   const handleTakePhoto = async () => {
-    if (cameraRef.current && cameraPermission) {
+    if (cameraRef.current && cameraPermission && device) {
       try {
         const photo = await cameraRef.current.takePhoto({
           enableAutoDistortionCorrection: true,
@@ -104,6 +108,8 @@ const CameraComponent: React.FC = () => {
         isActive={true}
         ref={cameraRef}
         photo={true}
+        // The correct way to set frame processing (optional for video)
+        // frameProcessor={frameProcessor}  // Use this for frame processing (for video, not photos)
       />
       <TouchableOpacity style={styles.button} onPress={handleTakePhoto}>
         <Text style={styles.buttonText}>Take Photo</Text>
