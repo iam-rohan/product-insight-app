@@ -1,5 +1,12 @@
 import React, {useState, useEffect, useRef} from 'react';
-import {View, TouchableOpacity, Image, StyleSheet, Text} from 'react-native';
+import {
+  View,
+  TouchableOpacity,
+  Image,
+  StyleSheet,
+  Text,
+  Alert,
+} from 'react-native';
 import {Camera, useCameraDevices} from 'react-native-vision-camera';
 import ImageCropPicker from 'react-native-image-crop-picker';
 import {useNavigation} from '@react-navigation/native';
@@ -21,12 +28,12 @@ const CameraComponent: React.FC = () => {
   const navigation = useNavigation<NavigationProps>();
 
   const devices = useCameraDevices();
-  const device = devices[0]; // Assuming the first device in the array is the back camera
+  const device = devices.find(d => d.position === 'back'); // Ensure we get the back camera
 
   useEffect(() => {
     const requestCameraPermission = async () => {
       const status = await Camera.requestCameraPermission();
-      setCameraPermission(status === 'granted'); // Check if the status is 'granted'
+      setCameraPermission(status === 'granted');
     };
     requestCameraPermission();
   }, []);
@@ -43,32 +50,37 @@ const CameraComponent: React.FC = () => {
         const photoUri = `file://${photo.path}`;
         setPhotos(prevPhotos => {
           const newPhotos = [...prevPhotos, photoUri];
-
-          // Crop only the second photo
           if (newPhotos.length === 2) {
-            ImageCropPicker.openCropper({
-              path: newPhotos[1],
-              width: 400,
-              height: 400,
-              freeStyleCropEnabled: true, // Enable adjustable rectangle
-              cropping: true,
-              mediaType: 'photo',
-            })
-              .then(croppedImage => {
-                const croppedPhotoUri = croppedImage.path;
-                newPhotos[1] = croppedPhotoUri; // Update second photo with cropped version
-                navigation.navigate('Confirmation', {photos: newPhotos});
-              })
-              .catch(error => {
-                console.error('Error cropping photo:', error);
-              });
+            // Crop only the second photo
+            cropPhoto(newPhotos[1], newPhotos);
           }
           return newPhotos;
         });
       } catch (error) {
         console.error('Error taking photo:', error);
+        Alert.alert('Error', 'There was an error taking the photo.');
       }
     }
+  };
+
+  const cropPhoto = (photoUri: string, newPhotos: string[]) => {
+    ImageCropPicker.openCropper({
+      path: photoUri,
+      width: 400,
+      height: 400,
+      freeStyleCropEnabled: true, // Allow adjustable cropping
+      cropping: true,
+      mediaType: 'photo',
+    })
+      .then(croppedImage => {
+        const croppedPhotoUri = croppedImage.path;
+        newPhotos[1] = croppedPhotoUri; // Update second photo with cropped version
+        navigation.navigate('Confirmation', {photos: newPhotos});
+      })
+      .catch(error => {
+        console.error('Error cropping photo:', error);
+        Alert.alert('Error', 'There was an error cropping the photo.');
+      });
   };
 
   // Render loading, no access, and camera UI conditions
