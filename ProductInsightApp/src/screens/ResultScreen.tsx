@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,35 +6,38 @@ import {
   ScrollView,
   Image,
   TouchableOpacity,
+  Modal,
+  Button,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import {getCoverPhoto} from '../database/database';
-import {RouteProp} from '@react-navigation/native'; // Import RouteProp for navigation types
+import { RouteProp } from '@react-navigation/native';
+import { RootStackParamList } from '../types';
+import { getPhotos } from '../database/database'; // Import your database logic
+import { recognizeTextFromImage } from '../services/mlkit'; // Assuming this function is correctly implemented
+
+type ResultScreenRouteProp = RouteProp<RootStackParamList, 'Result'>;
 
 type RankType = 'A' | 'B' | 'C' | 'D' | 'E';
 
-type ResultScreenProps = {
-  route: RouteProp<{params: {productName: string; ingredients: string}}>;
-};
-
-const ResultScreen: React.FC<ResultScreenProps> = ({route}) => {
+const ResultScreen: React.FC<{ route: ResultScreenRouteProp }> = () => {
   const [showNegatives, setShowNegatives] = useState(true);
   const [showPositives, setShowPositives] = useState(true);
-  const [coverPhoto, setCoverPhoto] = useState<string | null>(null);
+  const [coverPhotoFirst, setCoverPhotoFirst] = useState<string | null>(null);
+  const [recognizedTextSecond, setRecognizedTextSecond] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-
-  const {productName, ingredients} = route.params || {}; // Ensure route.params exists
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalImage, setModalImage] = useState<string | null>(null);
 
   const negatives = [
-    {text: 'Phosphoric Acid', color: 'red'},
-    {text: 'High Sugar', color: 'red'},
-    {text: 'Caffeine', color: 'red'},
+    { text: 'Phosphoric Acid', color: 'red' },
+    { text: 'High Sugar', color: 'red' },
+    { text: 'Caffeine', color: 'red' },
   ];
 
   const positives = [
-    {text: 'Low Calories', color: 'green'},
-    {text: 'Vitamin C', color: 'green'},
-    {text: 'No Artificial Flavors', color: 'green'},
+    { text: 'Low Calories', color: 'green' },
+    { text: 'Vitamin C', color: 'green' },
+    { text: 'No Artificial Flavors', color: 'green' },
   ];
 
   const getRankColor = (rank: RankType) => {
@@ -54,20 +57,21 @@ const ResultScreen: React.FC<ResultScreenProps> = ({route}) => {
     }
   };
 
-  const Ranker: React.FC<{rank: RankType}> = ({rank}) => {
+  const Ranker: React.FC<{ rank: RankType }> = ({ rank }) => {
     const ranks: RankType[] = ['A', 'B', 'C', 'D', 'E'];
     return (
       <View style={styles.rankContainer}>
-        {ranks.map(r => (
+        {ranks.map((r) => (
           <View
             key={r}
             style={[
               styles.rankBox,
               {
                 backgroundColor: getRankColor(r),
-                transform: r === rank ? [{scale: 1.5}] : [{scale: 1}],
+                transform: r === rank ? [{ scale: 1.5 }] : [{ scale: 1 }],
               },
-            ]}>
+            ]}
+          >
             <Text style={styles.rankText}>{r}</Text>
           </View>
         ))}
@@ -76,40 +80,77 @@ const ResultScreen: React.FC<ResultScreenProps> = ({route}) => {
   };
 
   useEffect(() => {
-    const fetchCoverPhoto = async () => {
-      const photoPath = await getCoverPhoto();
-      setCoverPhoto(photoPath);
-      setLoading(false);
+    const fetchPhotos = async () => {
+      setLoading(true);
+      setCoverPhotoFirst(null);
+      setRecognizedTextSecond(null);
+
+      try {
+        const photos = await getPhotos();
+
+        if (photos.length > 0) {
+          setCoverPhotoFirst(photos[0].coverPhoto);
+
+          if (photos[0].ocrPhoto) {
+            try {
+              const recognizedText = await recognizeTextFromImage(photos[0].ocrPhoto);
+              setRecognizedTextSecond(recognizedText);
+            } catch (error) {
+              console.error('OCR failed:', error);
+              setRecognizedTextSecond('Failed to recognize text from the image.');
+            }
+          }
+        } else {
+          console.log('No photos found in the database.');
+          setRecognizedTextSecond('No photos available.');
+        }
+      } catch (error) {
+        console.error('Error fetching photos:', error);
+        setRecognizedTextSecond('Error loading photos.');
+      } finally {
+        setLoading(false);
+      }
     };
-    fetchCoverPhoto();
+
+    fetchPhotos();
   }, []);
+
+  const openModal = (imageUri: string) => {
+    setModalImage(imageUri);
+    setModalVisible(true);
+  };
+
+  const closeModal = () => {
+    setModalImage(null);
+    setModalVisible(false);
+  };
 
   return (
     <View style={styles.container}>
-      <View style={styles.headers}></View>
       <View style={styles.header}>
         {loading ? (
           <Text>Loading...</Text>
-        ) : coverPhoto ? (
-          <Image source={{uri: coverPhoto}} style={styles.productImage} />
+        ) : coverPhotoFirst ? (
+          <TouchableOpacity onPress={() => openModal(coverPhotoFirst)}>
+            <Image source={{ uri: coverPhotoFirst }} style={styles.productImage} />
+          </TouchableOpacity>
         ) : (
           <Text>No Cover Photo Available</Text>
         )}
         <View style={styles.headerText}>
-          <Text style={styles.title}>{productName || 'Unknown Product'}</Text>
+          <Text style={styles.title}>{''}</Text>
           <Ranker rank="C" />
         </View>
       </View>
 
       <ScrollView style={styles.content}>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Recognized Ingredients:</Text>
+          <Text style={styles.sectionTitle}>Ingredients:</Text>
           <Text style={styles.ingredientsText}>
-            {ingredients || 'No Ingredients Available'}
+            {recognizedTextSecond || 'No text recognized from the photo.'}
           </Text>
         </View>
 
-        {/* Negatives Section */}
         <View style={styles.section}>
           <TouchableOpacity onPress={() => setShowNegatives(!showNegatives)}>
             <View style={styles.sectionTitleContainer}>
@@ -126,14 +167,13 @@ const ResultScreen: React.FC<ResultScreenProps> = ({route}) => {
               {negatives.map((item, index) => (
                 <View key={index} style={styles.listItem}>
                   <Text style={styles.negativeText}>{item.text}</Text>
-                  <View style={[styles.dot, {backgroundColor: item.color}]} />
+                  <View style={[styles.dot, { backgroundColor: item.color }]} />
                 </View>
               ))}
             </View>
           )}
         </View>
 
-        {/* Positives Section */}
         <View style={styles.section}>
           <TouchableOpacity onPress={() => setShowPositives(!showPositives)}>
             <View style={styles.sectionTitleContainer}>
@@ -150,13 +190,22 @@ const ResultScreen: React.FC<ResultScreenProps> = ({route}) => {
               {positives.map((item, index) => (
                 <View key={index} style={styles.listItem}>
                   <Text style={styles.positiveText}>{item.text}</Text>
-                  <View style={[styles.dot, {backgroundColor: item.color}]} />
+                  <View style={[styles.dot, { backgroundColor: item.color }]} />
                 </View>
               ))}
             </View>
           )}
         </View>
       </ScrollView>
+
+      <Modal visible={modalVisible} transparent={false} animationType="fade">
+        <View style={styles.modalContainer}>
+          {modalImage && (
+            <Image source={{ uri: modalImage }} style={styles.modalImage} />
+          )}
+          <Button title="Close" onPress={closeModal} />
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -165,11 +214,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F5F5F5',
-  },
-  headers: {
-    height: 35,
-    width: '100%',
-    backgroundColor: '#3B7A57',
   },
   header: {
     flexDirection: 'row',
@@ -203,14 +247,14 @@ const styles = StyleSheet.create({
     marginLeft: 10,
   },
   rankBox: {
-    width: 20,
-    height: 20,
+    width: 38,
+    height: 35,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 4,
+    borderRadius: 10,
   },
   rankText: {
-    fontSize: 12,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#FFF',
   },
@@ -252,6 +296,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#444444',
     marginBottom: 20,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#000',
+  },
+  modalImage: {
+    width: '100%',
+    height: '80%',
+    resizeMode: 'contain',
   },
 });
 

@@ -10,7 +10,6 @@ import {
 import {
   Camera,
   useCameraDevices,
-  CameraProps,
 } from 'react-native-vision-camera';
 import ImageCropPicker from 'react-native-image-crop-picker';
 import {useNavigation} from '@react-navigation/native';
