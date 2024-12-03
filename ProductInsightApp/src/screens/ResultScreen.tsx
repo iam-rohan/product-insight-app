@@ -11,22 +11,23 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { RouteProp } from '@react-navigation/native';
-import { RootStackParamList } from '../types';
-import { getPhotos } from '../database/database'; // Import your database logic
-import { recognizeTextFromImage } from '../services/mlkit'; // Assuming this function is correctly implemented
+import { RootStackParamList } from '../types'; // Import your types if needed
+import { recognizeTextFromImage } from '../services/mlkit';
+
+type RankType = 'A' | 'B' | 'C' | 'D' | 'E'; // Declare RankType locally
 
 type ResultScreenRouteProp = RouteProp<RootStackParamList, 'Result'>;
 
-type RankType = 'A' | 'B' | 'C' | 'D' | 'E';
-
-const ResultScreen: React.FC<{ route: ResultScreenRouteProp }> = () => {
+const ResultScreen: React.FC<{ route: ResultScreenRouteProp }> = ({ route }) => {
   const [showNegatives, setShowNegatives] = useState(true);
   const [showPositives, setShowPositives] = useState(true);
-  const [coverPhotoFirst, setCoverPhotoFirst] = useState<string | null>(null);
-  const [recognizedTextSecond, setRecognizedTextSecond] = useState<string | null>(null);
+  const [recognizedText, setRecognizedText] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalImage, setModalImage] = useState<string | null>(null);
+
+  // Extracting data from route params with default fallbacks
+  const { coverPhoto = '', ocrPhoto = '' }: {  coverPhoto: string; ocrPhoto: string } = route.params || {};
 
   const negatives = [
     { text: 'Phosphoric Acid', color: 'red' },
@@ -43,17 +44,17 @@ const ResultScreen: React.FC<{ route: ResultScreenRouteProp }> = () => {
   const getRankColor = (rank: RankType) => {
     switch (rank) {
       case 'A':
-        return '#2E7D32'; // Dark green
+        return '#2E7D32';
       case 'B':
-        return '#66BB6A'; // Light green
+        return '#66BB6A';
       case 'C':
-        return '#FFEB3B'; // Yellow
+        return '#FFEB3B';
       case 'D':
-        return '#FF9800'; // Orange
+        return '#FF9800';
       case 'E':
-        return '#F44336'; // Red
+        return '#F44336';
       default:
-        return '#BDBDBD'; // Gray for unranked
+        return '#BDBDBD';
     }
   };
 
@@ -80,40 +81,24 @@ const ResultScreen: React.FC<{ route: ResultScreenRouteProp }> = () => {
   };
 
   useEffect(() => {
-    const fetchPhotos = async () => {
-      setLoading(true);
-      setCoverPhotoFirst(null);
-      setRecognizedTextSecond(null);
-
+    const performOCR = async () => {
       try {
-        const photos = await getPhotos();
-
-        if (photos.length > 0) {
-          setCoverPhotoFirst(photos[0].coverPhoto);
-
-          if (photos[0].ocrPhoto) {
-            try {
-              const recognizedText = await recognizeTextFromImage(photos[0].ocrPhoto);
-              setRecognizedTextSecond(recognizedText);
-            } catch (error) {
-              console.error('OCR failed:', error);
-              setRecognizedTextSecond('Failed to recognize text from the image.');
-            }
-          }
-        } else {
-          console.log('No photos found in the database.');
-          setRecognizedTextSecond('No photos available.');
-        }
+        setLoading(true);
+        const text = await recognizeTextFromImage(ocrPhoto);
+        setRecognizedText(text);
+        console.log('Recognized Text:', text); // Debugging the OCR output
       } catch (error) {
-        console.error('Error fetching photos:', error);
-        setRecognizedTextSecond('Error loading photos.');
+        console.error('OCR failed:', error);
+        setRecognizedText('Failed to recognize text from the image.');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchPhotos();
-  }, []);
+    if (ocrPhoto) {
+      performOCR();
+    }
+  }, [ocrPhoto]);
 
   const openModal = (imageUri: string) => {
     setModalImage(imageUri);
@@ -128,18 +113,15 @@ const ResultScreen: React.FC<{ route: ResultScreenRouteProp }> = () => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        {loading ? (
-          <Text>Loading...</Text>
-        ) : coverPhotoFirst ? (
-          <TouchableOpacity onPress={() => openModal(coverPhotoFirst)}>
-            <Image source={{ uri: coverPhotoFirst }} style={styles.productImage} />
-          </TouchableOpacity>
-        ) : (
-          <Text>No Cover Photo Available</Text>
-        )}
+        <TouchableOpacity onPress={() => openModal(coverPhoto)}>
+          <Image
+            source={{ uri: coverPhoto || 'https://via.placeholder.com/150' }}
+            style={styles.productImage}
+          />
+        </TouchableOpacity>
         <View style={styles.headerText}>
-          <Text style={styles.title}>{''}</Text>
-          <Ranker rank="C" />
+          <Text style={styles.title}>Product</Text>
+          <Ranker rank={'C'} />
         </View>
       </View>
 
@@ -147,10 +129,9 @@ const ResultScreen: React.FC<{ route: ResultScreenRouteProp }> = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Ingredients:</Text>
           <Text style={styles.ingredientsText}>
-            {recognizedTextSecond || 'No text recognized from the photo.'}
+            {loading ? 'Loading...' : recognizedText || 'No text recognized from the photo.'}
           </Text>
         </View>
-
         <View style={styles.section}>
           <TouchableOpacity onPress={() => setShowNegatives(!showNegatives)}>
             <View style={styles.sectionTitleContainer}>
@@ -200,9 +181,7 @@ const ResultScreen: React.FC<{ route: ResultScreenRouteProp }> = () => {
 
       <Modal visible={modalVisible} transparent={false} animationType="fade">
         <View style={styles.modalContainer}>
-          {modalImage && (
-            <Image source={{ uri: modalImage }} style={styles.modalImage} />
-          )}
+          {modalImage && <Image source={{ uri: modalImage }} style={styles.modalImage} />}
           <Button title="Close" onPress={closeModal} />
         </View>
       </Modal>
@@ -261,16 +240,16 @@ const styles = StyleSheet.create({
   section: {
     marginVertical: 20,
   },
-  sectionTitleContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 5,
     color: '#333333',
+  },
+  sectionTitleContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   listItem: {
     flexDirection: 'row',

@@ -78,9 +78,12 @@ const HistoryScreen = () => {
   };
 
   // Handle photo click and pass recognized text to the Result screen
-  const handlePhotoClick = async (ocrPhoto: string) => {
-    const recognizedText = await recognizeTextFromImage(ocrPhoto);
-    navigation.navigate('Result', { recognizedText }); // Removed rank from navigation
+  const handlePhotoClick = async (photo: Photo) => {
+    navigation.navigate('Result', { 
+      coverPhoto: photo.coverPhoto,
+      ocrPhoto: photo.ocrPhoto,
+   
+    });// Removed rank from navigation
   };
 
   // Fetch photos when the component mounts
@@ -91,7 +94,7 @@ const HistoryScreen = () => {
   // Render each item in the FlatList
   // Render each item in the FlatList
 const renderItem = ({ item, index }: { item: Photo; index: number }) => (
-  <TouchableOpacity onPress={() => handlePhotoClick(item.ocrPhoto)} style={styles.photoItem}>
+  <TouchableOpacity onPress={() => handlePhotoClick(item)} style={styles.photoItem}>
     <Image source={{ uri: item.coverPhoto }} style={styles.photoImage} />
     <View style={styles.photoInfo}>
       <Text style={styles.photoTitle}>Click {index + 1}</Text>
