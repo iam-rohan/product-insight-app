@@ -38,7 +38,7 @@ These instructions will help you set up and run the frontend of the Product Insi
 - For Windows:
 
   ```bash
-  ./setup.bat
+  .\setup.bat
   ```
 
 3. **Navigate to the Project Directory**

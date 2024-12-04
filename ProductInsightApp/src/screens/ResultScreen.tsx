@@ -1,48 +1,39 @@
-import React, {useState, useEffect} from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   Image,
+  ScrollView,
   TouchableOpacity,
+  ActivityIndicator,
+  Modal,
+  Button,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import {getCoverPhoto} from '../database/database';
-import {RouteProp} from '@react-navigation/native'; // Import RouteProp for navigation types
+import { RouteProp } from '@react-navigation/native';
+import { recognizeTextFromImage } from '../services/mlkit';
 
 type RankType = 'A' | 'B' | 'C' | 'D' | 'E';
 
-type ResultScreenProps = {
-  route: RouteProp<{params: {productName: string; ingredients: string}}>;
+type RootStackParamList = {
+  Result: { coverPhoto: string; ocrPhoto: string; rank: RankType };
 };
 
-const ResultScreen: React.FC<ResultScreenProps> = ({route}) => {
-  const [showNegatives, setShowNegatives] = useState(true);
-  const [showPositives, setShowPositives] = useState(true);
-  const [coverPhoto, setCoverPhoto] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+type ResultScreenProps = {
+  route: RouteProp<RootStackParamList, 'Result'>;
+};
 
-  const {productName, ingredients} = route.params || {}; // Ensure route.params exists
-
-  const negatives = [
-    {text: 'Phosphoric Acid', color: 'red'},
-    {text: 'High Sugar', color: 'red'},
-    {text: 'Caffeine', color: 'red'},
-  ];
-
-  const positives = [
-    {text: 'Low Calories', color: 'green'},
-    {text: 'Vitamin C', color: 'green'},
-    {text: 'No Artificial Flavors', color: 'green'},
-  ];
+// Define Ranker component
+const Ranker: React.FC<{ rank: RankType }> = ({ rank }) => {
+  const ranks: RankType[] = ['A', 'B', 'C', 'D', 'E'];
 
   const getRankColor = (rank: RankType) => {
     switch (rank) {
       case 'A':
-        return '#2E7D32'; // Dark green
+        return '#2E7D32'; // Green
       case 'B':
-        return '#66BB6A'; // Light green
+        return '#66BB6A'; // Light Green
       case 'C':
         return '#FFEB3B'; // Yellow
       case 'D':
@@ -50,177 +41,204 @@ const ResultScreen: React.FC<ResultScreenProps> = ({route}) => {
       case 'E':
         return '#F44336'; // Red
       default:
-        return '#BDBDBD'; // Gray for unranked
+        return '#BDBDBD'; // Gray
     }
   };
 
-  const Ranker: React.FC<{rank: RankType}> = ({rank}) => {
-    const ranks: RankType[] = ['A', 'B', 'C', 'D', 'E'];
-    return (
-      <View style={styles.rankContainer}>
-        {ranks.map(r => (
-          <View
-            key={r}
-            style={[
-              styles.rankBox,
-              {
-                backgroundColor: getRankColor(r),
-                transform: r === rank ? [{scale: 1.5}] : [{scale: 1}],
-              },
-            ]}>
-            <Text style={styles.rankText}>{r}</Text>
-          </View>
-        ))}
-      </View>
-    );
-  };
-
-  useEffect(() => {
-    const fetchCoverPhoto = async () => {
-      const photoPath = await getCoverPhoto();
-      setCoverPhoto(photoPath);
-      setLoading(false);
-    };
-    fetchCoverPhoto();
-  }, []);
-
   return (
-    <View style={styles.container}>
-      <View style={styles.headers}></View>
-      <View style={styles.header}>
-        {loading ? (
-          <Text>Loading...</Text>
-        ) : coverPhoto ? (
-          <Image source={{uri: coverPhoto}} style={styles.productImage} />
-        ) : (
-          <Text>No Cover Photo Available</Text>
-        )}
-        <View style={styles.headerText}>
-          <Text style={styles.title}>{productName || 'Unknown Product'}</Text>
-          <Ranker rank="C" />
+    <View style={styles.rankContainer}>
+      {ranks.map((r) => (
+        <View
+          key={r}
+          style={[
+            styles.rankBox,
+            {
+              backgroundColor: getRankColor(r),
+              transform: r === rank ? [{ scale: 1.5 }] : [{ scale: 1 }],
+            },
+          ]}
+        >
+          <Text style={styles.rankText}>{r}</Text>
         </View>
-      </View>
-
-      <ScrollView style={styles.content}>
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Recognized Ingredients:</Text>
-          <Text style={styles.ingredientsText}>
-            {ingredients || 'No Ingredients Available'}
-          </Text>
-        </View>
-
-        {/* Negatives Section */}
-        <View style={styles.section}>
-          <TouchableOpacity onPress={() => setShowNegatives(!showNegatives)}>
-            <View style={styles.sectionTitleContainer}>
-              <Text style={styles.sectionTitle}>Negatives</Text>
-              <Icon
-                name={showNegatives ? 'chevron-up' : 'chevron-down'}
-                size={20}
-                color="#333"
-              />
-            </View>
-          </TouchableOpacity>
-          {showNegatives && (
-            <View>
-              {negatives.map((item, index) => (
-                <View key={index} style={styles.listItem}>
-                  <Text style={styles.negativeText}>{item.text}</Text>
-                  <View style={[styles.dot, {backgroundColor: item.color}]} />
-                </View>
-              ))}
-            </View>
-          )}
-        </View>
-
-        {/* Positives Section */}
-        <View style={styles.section}>
-          <TouchableOpacity onPress={() => setShowPositives(!showPositives)}>
-            <View style={styles.sectionTitleContainer}>
-              <Text style={styles.sectionTitle}>Positives</Text>
-              <Icon
-                name={showPositives ? 'chevron-up' : 'chevron-down'}
-                size={20}
-                color="#333"
-              />
-            </View>
-          </TouchableOpacity>
-          {showPositives && (
-            <View>
-              {positives.map((item, index) => (
-                <View key={index} style={styles.listItem}>
-                  <Text style={styles.positiveText}>{item.text}</Text>
-                  <View style={[styles.dot, {backgroundColor: item.color}]} />
-                </View>
-              ))}
-            </View>
-          )}
-        </View>
-      </ScrollView>
+      ))}
     </View>
   );
 };
 
+// ResultScreen Component
+const ResultScreen: React.FC<ResultScreenProps> = ({ route }) => {
+  const { coverPhoto, ocrPhoto } = route.params;
+
+  const [recognizedText, setRecognizedText] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [showNegatives, setShowNegatives] = useState(true);
+  const [showPositives, setShowPositives] = useState(true);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+
+  const negatives = [
+    { text: 'Phosphoric Acid', color: 'red' },
+    { text: 'High Sugar', color: 'red' },
+    { text: 'Caffeine', color: 'red' },
+  ];
+
+  const positives = [
+    { text: 'Low Calories', color: 'green' },
+    { text: 'Vitamin C', color: 'green' },
+    { text: 'No Artificial Flavors', color: 'green' },
+  ];
+
+  useEffect(() => {
+    const performOCR = async () => {
+      try {
+        setLoading(true);
+        const text = await recognizeTextFromImage(ocrPhoto);
+        setRecognizedText(text);
+      } catch (error) {
+        console.error('OCR failed:', error);
+        setRecognizedText('Failed to recognize text from the image.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    performOCR();
+  }, [ocrPhoto]);
+
+  return (
+    <ScrollView style={styles.container}>
+      {/* Header Section */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => setIsModalVisible(true)}>
+          <Image source={{ uri: coverPhoto }} style={styles.image} />
+        </TouchableOpacity>
+        <View style={styles.headerText}>
+         
+          {/* Always use rank "C" */}
+          <Ranker rank="C" />
+        </View>
+      </View>
+
+      {/* OCR Section */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Recognized Ingredients:</Text>
+        {loading ? (
+          <ActivityIndicator size="large" color="#3498db" />
+        ) : (
+          <Text style={styles.ingredientsText}>
+            {recognizedText || 'No text found.'}
+          </Text>
+        )}
+      </View>
+
+      {/* Negatives Section */}
+      <View style={styles.section}>
+        <TouchableOpacity onPress={() => setShowNegatives(!showNegatives)}>
+          <View style={styles.sectionTitleContainer}>
+            <Text style={styles.sectionTitle}>Negatives</Text>
+            <Icon
+              name={showNegatives ? 'chevron-up' : 'chevron-down'}
+              size={20}
+              color="#333"
+            />
+          </View>
+        </TouchableOpacity>
+        {showNegatives && (
+          <View>
+            {negatives.map((item, index) => (
+              <View key={index} style={styles.listItem}>
+                <Text style={styles.negativeText}>{item.text}</Text>
+                <View style={[styles.dot, { backgroundColor: item.color }]} />
+              </View>
+            ))}
+          </View>
+        )}
+      </View>
+
+      {/* Positives Section */}
+      <View style={styles.section}>
+        <TouchableOpacity onPress={() => setShowPositives(!showPositives)}>
+          <View style={styles.sectionTitleContainer}>
+            <Text style={styles.sectionTitle}>Positives</Text>
+            <Icon
+              name={showPositives ? 'chevron-up' : 'chevron-down'}
+              size={20}
+              color="#333"
+            />
+          </View>
+        </TouchableOpacity>
+        {showPositives && (
+          <View>
+            {positives.map((item, index) => (
+              <View key={index} style={styles.listItem}>
+                <Text style={styles.positiveText}>{item.text}</Text>
+                <View style={[styles.dot, { backgroundColor: item.color }]} />
+              </View>
+            ))}
+          </View>
+        )}
+      </View>
+
+      {/* Full-Screen Modal */}
+      <Modal
+        visible={isModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setIsModalVisible(false)}
+      >
+        <View style={styles.modalContainer}>
+          <Image source={{ uri: coverPhoto }} style={styles.modalImage} />
+          <Button title="Close" onPress={() => setIsModalVisible(false)} />
+        </View>
+      </Modal>
+    </ScrollView>
+  );
+};
+
+// Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F5F5F5',
-  },
-  headers: {
-    height: 35,
-    width: '100%',
-    backgroundColor: '#3B7A57',
+    paddingHorizontal: 20,
   },
   header: {
     flexDirection: 'row',
-    padding: 15,
-    alignItems: 'center',
-    marginTop: 20,
+    marginVertical: 20,
   },
-  productImage: {
-    width: 150,
-    height: 150,
+  image: {
+    width: 180,
+    height: 200,
     borderRadius: 10,
-    marginRight: 15,
+    marginRight: 20,
   },
   headerText: {
     flex: 1,
-    alignItems: 'flex-start',
+    justifyContent: 'center',
   },
   title: {
     fontSize: 30,
     fontWeight: 'bold',
+    color: '#222',
     marginBottom: 10,
-    color: '#222222',
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 20,
   },
   rankContainer: {
     flexDirection: 'row',
-    marginTop: 5,
-    marginLeft: 10,
+    marginTop: 10,
   },
   rankBox: {
-    width: 20,
-    height: 20,
+    width: 33,
+    height: 35,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 4,
+    borderRadius: 10,
   },
   rankText: {
-    fontSize: 12,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#FFF',
   },
   section: {
-    marginVertical: 20,
-  },
-  sectionTitleContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    marginBottom: 20,
   },
   sectionTitle: {
     fontSize: 20,
@@ -228,19 +246,25 @@ const styles = StyleSheet.create({
     marginBottom: 5,
     color: '#333333',
   },
+  sectionTitleContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   listItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 15,
+    paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#DDD',
-    paddingLeft: 20,
   },
   negativeText: {
-    color: '#444444',
+    fontSize: 16,
+    color: '#D32F2F',
   },
   positiveText: {
-    color: '#444444',
+    fontSize: 16,
+    color: '#388E3C',
   },
   dot: {
     width: 12,
@@ -250,8 +274,18 @@ const styles = StyleSheet.create({
   },
   ingredientsText: {
     fontSize: 16,
-    color: '#444444',
-    marginBottom: 20,
+    color: '#444',
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+  },
+  modalImage: {
+    width: '90%',
+    height: '80%',
+    resizeMode: 'contain',
   },
 });
 

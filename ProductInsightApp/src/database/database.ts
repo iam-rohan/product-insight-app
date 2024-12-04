@@ -1,22 +1,36 @@
 import SQLite, {SQLiteDatabase} from 'react-native-sqlite-storage';
 
-// Create a database variable
 let database: SQLiteDatabase;
 
-// Initialize the database
 export const initDatabase = async () => {
   database = await SQLite.openDatabase({
     name: 'productInsight.db',
     location: 'default',
   });
+
+  // Create the Photos table if it doesn't exist
+  database.transaction((tx) => {
+    tx.executeSql(
+      'CREATE TABLE IF NOT EXISTS Photos (id INTEGER PRIMARY KEY AUTOINCREMENT, coverPhoto TEXT, ocrPhoto TEXT)',
+      [],
+      () => {
+        console.log('Photos table verified or created successfully');
+      },
+      (_, error) => {
+        console.error('Error creating Photos table during initialization:', error);
+        return true; // Handle the error gracefully
+      }
+    );
+  });
+
   console.log('Database initialized');
 };
 
-// Function to store photos
+
 export const storePhotos = async (coverPhoto: string, ocrPhoto: string) => {
   return new Promise<void>((resolve, reject) => {
     database.transaction(tx => {
-      // Create the Photos table if it doesn't exist
+      // Create table if it doesn't exist
       tx.executeSql(
         'CREATE TABLE IF NOT EXISTS Photos (id INTEGER PRIMARY KEY AUTOINCREMENT, coverPhoto TEXT, ocrPhoto TEXT)',
         [],
@@ -26,7 +40,7 @@ export const storePhotos = async (coverPhoto: string, ocrPhoto: string) => {
         (_, error) => {
           console.error('Error creating table:', error);
           reject(error);
-          return true; // Return true to indicate that the error is handled
+          return true; // Return true to indicate error is handled
         },
       );
 
@@ -41,31 +55,61 @@ export const storePhotos = async (coverPhoto: string, ocrPhoto: string) => {
         (_, error) => {
           console.error('Error storing photos:', error);
           reject(error);
-          return true; // Return true to indicate that the error is handled
+          return true;
         },
       );
     });
   });
 };
 
-// Function to get cover photo
-export const getCoverPhoto = async (): Promise<string | null> => {
-  return new Promise<string | null>((resolve, reject) => {
+// Function to get all stored photos
+export const getPhotos = async (): Promise<
+  { id: number; coverPhoto: string; ocrPhoto: string }[]
+> => {
+  return new Promise((resolve) => {
+    database.transaction(
+      (tx) => {
+        tx.executeSql(
+          'SELECT * FROM Photos ORDER BY id DESC',
+          [],
+          (_, result) => {
+            const photos = [];
+            for (let i = 0; i < result.rows.length; i++) {
+              photos.push(result.rows.item(i));
+            }
+            resolve(photos); // Return photos (even empty)
+          },
+          (_, error) => {
+            console.log('No photos found or database error:', error);
+            resolve([]); // Return an empty array if an error occurs
+            return true; // Handle the error gracefully
+          }
+        );
+      },
+      (error) => {
+        console.error('Transaction error during getPhotos:', error);
+        resolve([]); // Return an empty array if the transaction fails
+      }
+    );
+  });
+};
+
+
+// Function to delete a photo by ID
+export const deletePhoto = async (id: number) => {
+  return new Promise<void>((resolve, reject) => {
     database.transaction(tx => {
       tx.executeSql(
-        'SELECT coverPhoto FROM Photos ORDER BY id DESC LIMIT 1',
-        [],
+        'DELETE FROM Photos WHERE id = ?',
+        [id],
         (_, result) => {
-          if (result.rows.length > 0) {
-            resolve(result.rows.item(0).coverPhoto);
-          } else {
-            resolve(null); // No cover photo found
-          }
+          console.log('Photo deleted successfully:', result);
+          resolve();
         },
         (_, error) => {
-          console.error('Error retrieving cover photo:', error);
+          console.error('Error deleting photo:', error);
           reject(error);
-          return true; // Return true to indicate that the error is handled
+          return true;
         },
       );
     });
