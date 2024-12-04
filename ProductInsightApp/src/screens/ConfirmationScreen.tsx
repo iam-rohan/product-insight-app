@@ -10,13 +10,13 @@ import {
 import {RouteProp} from '@react-navigation/native';
 import {StackNavigationProp} from '@react-navigation/stack';
 import {storePhotos, initDatabase} from '../database/database';
-import {recognizeTextFromImage} from '../services/mlkit'; // Import ML Kit service
+
 
 // Define the parameter list for navigation
 type RootStackParamList = {
   Home: undefined;
   Camera: undefined;
-  Result: {productName: string; ingredients: string};
+  Result: { coverPhoto: string; ocrPhoto: string };
   Confirmation: {photos: string[]};
 };
 
@@ -60,15 +60,10 @@ const ConfirmationScreen: React.FC<ConfirmationScreenProps> = ({
 
       console.log('Photos stored successfully');
 
-      // Recognize text from both photos
-      const productName = await recognizeTextFromImage(coverPhoto); // For product name
-      const ingredients = await recognizeTextFromImage(ocrPhoto); // For ingredient list
+    
 
       // Navigate to Result screen, passing recognized productName and ingredients
-      navigation.navigate('Result', {
-        productName: productName || 'Unknown',
-        ingredients: ingredients || 'Not available',
-      });
+      navigation.navigate('Result', { coverPhoto, ocrPhoto });
     } catch (error) {
       console.error('Error during confirmation:', error);
     }
