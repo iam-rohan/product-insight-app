@@ -8,52 +8,54 @@ export const initDatabase = async () => {
     location: 'default',
   });
 
-  // Create the Photos table if it doesn't exist
-  database.transaction((tx) => {
+  // Create the Photos table if it doesn't exist, including ingredientList and rank columns
+  database.transaction(tx => {
     tx.executeSql(
-      'CREATE TABLE IF NOT EXISTS Photos (id INTEGER PRIMARY KEY AUTOINCREMENT, coverPhoto TEXT, ocrPhoto TEXT)',
+      `CREATE TABLE IF NOT EXISTS Photos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        coverPhoto TEXT,
+        ocrPhoto TEXT,
+        ingredientList TEXT,
+        rank TEXT DEFAULT 'C'
+      )`,
       [],
       () => {
         console.log('Photos table verified or created successfully');
       },
       (_, error) => {
-        console.error('Error creating Photos table during initialization:', error);
+        console.error(
+          'Error creating Photos table during initialization:',
+          error,
+        );
         return true; // Handle the error gracefully
-      }
+      },
     );
   });
 
   console.log('Database initialized');
 };
 
-
-export const storePhotos = async (coverPhoto: string, ocrPhoto: string) => {
+export const storePhotos = async (
+  coverPhoto: string,
+  ocrPhoto: string,
+  ingredientList: string[],
+  rank: string,
+) => {
   return new Promise<void>((resolve, reject) => {
     database.transaction(tx => {
-      // Create table if it doesn't exist
+      // Insert the photos, ingredientList, and rank into the Photos table
       tx.executeSql(
-        'CREATE TABLE IF NOT EXISTS Photos (id INTEGER PRIMARY KEY AUTOINCREMENT, coverPhoto TEXT, ocrPhoto TEXT)',
-        [],
-        () => {
-          console.log('Table created successfully');
-        },
-        (_, error) => {
-          console.error('Error creating table:', error);
-          reject(error);
-          return true; // Return true to indicate error is handled
-        },
-      );
-
-      // Insert the photos into the Photos table
-      tx.executeSql(
-        'INSERT INTO Photos (coverPhoto, ocrPhoto) VALUES (?, ?)',
-        [coverPhoto, ocrPhoto],
+        'INSERT INTO Photos (coverPhoto, ocrPhoto, ingredientList, rank) VALUES (?, ?, ?, ?)',
+        [coverPhoto, ocrPhoto, JSON.stringify(ingredientList), rank],
         (_, result) => {
-          console.log('Photos stored successfully:', result);
+          console.log(
+            'Photos and ingredient list stored successfully:',
+            result,
+          );
           resolve();
         },
         (_, error) => {
-          console.error('Error storing photos:', error);
+          console.error('Error storing photos and ingredient list:', error);
           reject(error);
           return true;
         },
@@ -64,11 +66,17 @@ export const storePhotos = async (coverPhoto: string, ocrPhoto: string) => {
 
 // Function to get all stored photos
 export const getPhotos = async (): Promise<
-  { id: number; coverPhoto: string; ocrPhoto: string }[]
+  {
+    id: number;
+    coverPhoto: string;
+    ocrPhoto: string;
+    ingredientList: string;
+    rank: string;
+  }[]
 > => {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     database.transaction(
-      (tx) => {
+      tx => {
         tx.executeSql(
           'SELECT * FROM Photos ORDER BY id DESC',
           [],
@@ -77,23 +85,22 @@ export const getPhotos = async (): Promise<
             for (let i = 0; i < result.rows.length; i++) {
               photos.push(result.rows.item(i));
             }
-            resolve(photos); // Return photos (even empty)
+            resolve(photos);
           },
           (_, error) => {
             console.log('No photos found or database error:', error);
             resolve([]); // Return an empty array if an error occurs
             return true; // Handle the error gracefully
-          }
+          },
         );
       },
-      (error) => {
+      error => {
         console.error('Transaction error during getPhotos:', error);
-        resolve([]); // Return an empty array if the transaction fails
-      }
+        resolve([]);
+      },
     );
   });
 };
-
 
 // Function to delete a photo by ID
 export const deletePhoto = async (id: number) => {

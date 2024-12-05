@@ -10,13 +10,18 @@ import {
 import {RouteProp} from '@react-navigation/native';
 import {StackNavigationProp} from '@react-navigation/stack';
 import {storePhotos, initDatabase} from '../database/database';
-
+import {recognizeTextFromImage} from '../services/mlkit'; // Importing OCR service
 
 // Define the parameter list for navigation
 type RootStackParamList = {
   Home: undefined;
   Camera: undefined;
-  Result: { coverPhoto: string; ocrPhoto: string };
+  Result: {
+    coverPhoto: string;
+    ocrPhoto: string;
+    ingredientList: string[];
+    rank: string;
+  };
   Confirmation: {photos: string[]};
 };
 
@@ -56,14 +61,36 @@ const ConfirmationScreen: React.FC<ConfirmationScreenProps> = ({
       // Store photos in the database
       const coverPhoto = images[0]; // First image as cover photo
       const ocrPhoto = images[1]; // Second image as OCR photo
-      await storePhotos(coverPhoto, ocrPhoto);
 
-      console.log('Photos stored successfully');
+      // Extract ingredient list from OCR photo
+      const recognizedText = await recognizeTextFromImage(ocrPhoto);
+      if (recognizedText) {
+        // Split recognized text by commas instead of spaces
+        const ingredientList = recognizedText
+          .split(',')
+          .map(item => item.trim()) // Trim spaces around each ingredient
+          .filter(item => item.length > 0); // Filter out any empty strings
 
-    
+        console.log('Ingredient list extracted:', ingredientList);
 
-      // Navigate to Result screen, passing recognized productName and ingredients
-      navigation.navigate('Result', { coverPhoto, ocrPhoto });
+        // Default rank for the product
+        const rank = 'C';
+
+        // Store photos, ingredient list, and rank in the database
+        await storePhotos(coverPhoto, ocrPhoto, ingredientList, rank);
+
+        console.log('Photos and ingredient list stored successfully');
+
+        // Navigate to Result screen, passing the ingredientList and photo URIs
+        navigation.navigate('Result', {
+          coverPhoto,
+          ocrPhoto,
+          ingredientList,
+          rank,
+        });
+      } else {
+        console.warn('Failed to extract ingredient list.');
+      }
     } catch (error) {
       console.error('Error during confirmation:', error);
     }
@@ -115,12 +142,12 @@ const styles = StyleSheet.create({
     padding: '3%',
   },
   image: {
-    width: '50%', // Adjusted width for better fit
+    width: '50%',
     height: '100%',
     borderWidth: 1,
     borderColor: '#fff',
     margin: 5,
-    borderRadius: 8, // Optional: added border radius for aesthetics
+    borderRadius: 8,
   },
   buttonContainer: {
     flex: 1,

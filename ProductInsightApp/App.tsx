@@ -4,7 +4,7 @@ import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {NavigationContainer} from '@react-navigation/native';
 import {createStackNavigator} from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import {initializeDataset} from './src/services/feature_extraction';
+import {printPaths} from './src/services/feature_extraction';
 
 // Importing Screens
 import HomeScreen from './src/screens/HomeScreen';
@@ -82,7 +82,8 @@ function App(): React.JSX.Element {
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        await initializeDataset(); // Ensure the dataset is copied to the document directory
+        // Removed initializeDataset() since it was removed from feature_extraction.ts
+        printPaths(); // Print paths for debugging purposes
         await initDatabase(); // Initialize database
       } catch (error) {
         console.error('Error during app initialization:', error);
