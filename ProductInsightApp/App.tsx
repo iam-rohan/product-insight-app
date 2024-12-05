@@ -4,6 +4,7 @@ import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {NavigationContainer} from '@react-navigation/native';
 import {createStackNavigator} from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import {initializeDataset} from './src/services/feature_extraction';
 
 // Importing Screens
 import HomeScreen from './src/screens/HomeScreen';
@@ -79,12 +80,16 @@ function HomeStack() {
 
 function App(): React.JSX.Element {
   useEffect(() => {
-    // Initialize the database when the app starts
     const initializeApp = async () => {
-      await initDatabase(); // Ensure the database is initialized
+      try {
+        await initializeDataset(); // Ensure the dataset is copied to the document directory
+        await initDatabase(); // Initialize database
+      } catch (error) {
+        console.error('Error during app initialization:', error);
+      }
     };
 
-    initializeApp(); // Call the initialization function
+    initializeApp();
   }, []);
 
   return (
