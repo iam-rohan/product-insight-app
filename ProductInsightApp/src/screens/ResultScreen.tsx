@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   View,
   Text,
@@ -11,13 +11,13 @@ import {
   Button,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import { RouteProp } from '@react-navigation/native';
-import { recognizeTextFromImage } from '../services/mlkit';
+import {RouteProp} from '@react-navigation/native';
+import {recognizeTextFromImage} from '../services/mlkit';
 
 type RankType = 'A' | 'B' | 'C' | 'D' | 'E';
 
 type RootStackParamList = {
-  Result: { coverPhoto: string; ocrPhoto: string; rank: RankType };
+  Result: {coverPhoto: string; ocrPhoto: string; rank: RankType};
 };
 
 type ResultScreenProps = {
@@ -25,7 +25,7 @@ type ResultScreenProps = {
 };
 
 // Define Ranker component
-const Ranker: React.FC<{ rank: RankType }> = ({ rank }) => {
+const Ranker: React.FC<{rank: RankType}> = ({rank}) => {
   const ranks: RankType[] = ['A', 'B', 'C', 'D', 'E'];
 
   const getRankColor = (rank: RankType) => {
@@ -47,17 +47,16 @@ const Ranker: React.FC<{ rank: RankType }> = ({ rank }) => {
 
   return (
     <View style={styles.rankContainer}>
-      {ranks.map((r) => (
+      {ranks.map(r => (
         <View
           key={r}
           style={[
             styles.rankBox,
             {
               backgroundColor: getRankColor(r),
-              transform: r === rank ? [{ scale: 1.5 }] : [{ scale: 1 }],
+              transform: r === rank ? [{scale: 1.5}] : [{scale: 1}],
             },
-          ]}
-        >
+          ]}>
           <Text style={styles.rankText}>{r}</Text>
         </View>
       ))}
@@ -66,8 +65,8 @@ const Ranker: React.FC<{ rank: RankType }> = ({ rank }) => {
 };
 
 // ResultScreen Component
-const ResultScreen: React.FC<ResultScreenProps> = ({ route }) => {
-  const { coverPhoto, ocrPhoto } = route.params;
+const ResultScreen: React.FC<ResultScreenProps> = ({route}) => {
+  const {coverPhoto, ocrPhoto} = route.params;
 
   const [recognizedText, setRecognizedText] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -76,15 +75,15 @@ const ResultScreen: React.FC<ResultScreenProps> = ({ route }) => {
   const [isModalVisible, setIsModalVisible] = useState(false);
 
   const negatives = [
-    { text: 'Phosphoric Acid', color: 'red' },
-    { text: 'High Sugar', color: 'red' },
-    { text: 'Caffeine', color: 'red' },
+    {text: 'Phosphoric Acid', color: 'red'},
+    {text: 'High Sugar', color: 'red'},
+    {text: 'Caffeine', color: 'red'},
   ];
 
   const positives = [
-    { text: 'Low Calories', color: 'green' },
-    { text: 'Vitamin C', color: 'green' },
-    { text: 'No Artificial Flavors', color: 'green' },
+    {text: 'Low Calories', color: 'green'},
+    {text: 'Vitamin C', color: 'green'},
+    {text: 'No Artificial Flavors', color: 'green'},
   ];
 
   useEffect(() => {
@@ -109,10 +108,9 @@ const ResultScreen: React.FC<ResultScreenProps> = ({ route }) => {
       {/* Header Section */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => setIsModalVisible(true)}>
-          <Image source={{ uri: coverPhoto }} style={styles.image} />
+          <Image source={{uri: coverPhoto}} style={styles.image} />
         </TouchableOpacity>
         <View style={styles.headerText}>
-         
           {/* Always use rank "C" */}
           <Ranker rank="C" />
         </View>
@@ -147,7 +145,7 @@ const ResultScreen: React.FC<ResultScreenProps> = ({ route }) => {
             {negatives.map((item, index) => (
               <View key={index} style={styles.listItem}>
                 <Text style={styles.negativeText}>{item.text}</Text>
-                <View style={[styles.dot, { backgroundColor: item.color }]} />
+                <View style={[styles.dot, {backgroundColor: item.color}]} />
               </View>
             ))}
           </View>
@@ -171,7 +169,7 @@ const ResultScreen: React.FC<ResultScreenProps> = ({ route }) => {
             {positives.map((item, index) => (
               <View key={index} style={styles.listItem}>
                 <Text style={styles.positiveText}>{item.text}</Text>
-                <View style={[styles.dot, { backgroundColor: item.color }]} />
+                <View style={[styles.dot, {backgroundColor: item.color}]} />
               </View>
             ))}
           </View>
@@ -183,10 +181,9 @@ const ResultScreen: React.FC<ResultScreenProps> = ({ route }) => {
         visible={isModalVisible}
         transparent={true}
         animationType="slide"
-        onRequestClose={() => setIsModalVisible(false)}
-      >
+        onRequestClose={() => setIsModalVisible(false)}>
         <View style={styles.modalContainer}>
-          <Image source={{ uri: coverPhoto }} style={styles.modalImage} />
+          <Image source={{uri: coverPhoto}} style={styles.modalImage} />
           <Button title="Close" onPress={() => setIsModalVisible(false)} />
         </View>
       </Modal>
