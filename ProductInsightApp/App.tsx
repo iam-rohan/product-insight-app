@@ -1,5 +1,5 @@
-import * as React from 'react'; // Importing React
-import {useEffect} from 'react'; // Importing useEffect
+import * as React from 'react';
+import {useEffect} from 'react';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {NavigationContainer} from '@react-navigation/native';
 import {createStackNavigator} from '@react-navigation/stack';
@@ -12,7 +12,12 @@ import HistoryScreen from './src/screens/HistoryScreen';
 import ResultScreen from './src/screens/ResultScreen';
 import CameraComponent from './src/components/CameraComponent';
 import ConfirmationScreen from './src/screens/ConfirmationScreen';
-import {initDatabase} from './src/database/database'; // Import the initDatabase function
+
+// Database init
+import {initDatabase} from './src/database/database';
+
+// **Import** your TFLite load function
+import {loadTfliteModel} from './src/services/tfliteService';
 
 // Type for bottom tab navigator
 type TabParamList = {
@@ -26,14 +31,12 @@ type RootStackParamList = {
   Camera: undefined;
   Confirmation: {photos: string[]};
   Result: undefined;
-  MainHome: undefined; // Renamed to avoid confusion
+  MainHome: undefined;
 };
 
-// Navigators
 const Tab = createBottomTabNavigator<TabParamList>();
 const Stack = createStackNavigator<RootStackParamList>();
 
-// TabBarIcon function
 function TabBarIcon({
   color,
   route,
@@ -79,12 +82,16 @@ function HomeStack() {
 
 function App(): React.JSX.Element {
   useEffect(() => {
-    // Initialize the database when the app starts
     const initializeApp = async () => {
-      await initDatabase(); // Ensure the database is initialized
+      try {
+        await initDatabase(); // DB init
+        await loadTfliteModel(); // Load TFLite model
+        console.log('App initialization complete');
+      } catch (err) {
+        console.error('Initialization error:', err);
+      }
     };
-
-    initializeApp(); // Call the initialization function
+    initializeApp();
   }, []);
 
   return (
