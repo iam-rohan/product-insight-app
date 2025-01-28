@@ -10,21 +10,21 @@ import {
   Modal,
   Button,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/FontAwesome';
 import {RouteProp} from '@react-navigation/native';
 import {recognizeTextFromImage} from '../services/mlkit';
+import {parseIngredients} from '../services/parseIngredients';
+import {computeProductHealthScore} from '../services/scoringService';
 
 type RankType = 'A' | 'B' | 'C' | 'D' | 'E';
 
 type RootStackParamList = {
-  Result: {coverPhoto: string; ocrPhoto: string; rank: RankType};
+  Result: {coverPhoto: string; ocrPhoto: string};
 };
 
 type ResultScreenProps = {
   route: RouteProp<RootStackParamList, 'Result'>;
 };
 
-// Define Ranker component
 const Ranker: React.FC<{rank: RankType}> = ({rank}) => {
   const ranks: RankType[] = ['A', 'B', 'C', 'D', 'E'];
 
@@ -64,119 +64,137 @@ const Ranker: React.FC<{rank: RankType}> = ({rank}) => {
   );
 };
 
-// ResultScreen Component
+const mapScoreToRank = (score: number): RankType => {
+  if (score >= 0.8) return 'A';
+  if (score >= 0.6) return 'B';
+  if (score >= 0.4) return 'C';
+  if (score >= 0.2) return 'D';
+  return 'E';
+};
+
 const ResultScreen: React.FC<ResultScreenProps> = ({route}) => {
   const {coverPhoto, ocrPhoto} = route.params;
 
-  const [recognizedText, setRecognizedText] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showNegatives, setShowNegatives] = useState(true);
-  const [showPositives, setShowPositives] = useState(true);
   const [isModalVisible, setIsModalVisible] = useState(false);
 
-  const negatives = [
-    {text: 'Phosphoric Acid', color: 'red'},
-    {text: 'High Sugar', color: 'red'},
-    {text: 'Caffeine', color: 'red'},
-  ];
-
-  const positives = [
-    {text: 'Low Calories', color: 'green'},
-    {text: 'Vitamin C', color: 'green'},
-    {text: 'No Artificial Flavors', color: 'green'},
-  ];
+  const [healthScore, setHealthScore] = useState<number | null>(null);
+  const [rank, setRank] = useState<RankType>('C');
+  const [recognizedIngredients, setRecognizedIngredients] = useState<string[]>(
+    [],
+  );
+  const [unrecognizedIngredients, setUnrecognizedIngredients] = useState<
+    string[]
+  >([]);
+  const [harmfulFlags, setHarmfulFlags] = useState<{
+    carcinogenic: string[];
+    preservative: string[];
+  }>({carcinogenic: [], preservative: []});
 
   useEffect(() => {
-    const performOCR = async () => {
+    const performOCRAndScoring = async () => {
       try {
         setLoading(true);
+
         const text = await recognizeTextFromImage(ocrPhoto);
-        setRecognizedText(text);
+
+        const ingredientList = text ? parseIngredients(text) : [];
+
+        const scoreResult = await computeProductHealthScore(ingredientList);
+        setHealthScore(scoreResult.overallHealthScore);
+
+        setRecognizedIngredients(
+          ingredientList.filter(ingredient =>
+            scoreResult.ingredientScores.some(
+              score => score.name === ingredient,
+            ),
+          ),
+        );
+        setUnrecognizedIngredients(scoreResult.unrecognizedIngredients);
+
+        const computedRank = mapScoreToRank(scoreResult.overallHealthScore);
+        setRank(computedRank);
+
+        setHarmfulFlags(scoreResult.harmfulFlags);
       } catch (error) {
-        console.error('OCR failed:', error);
-        setRecognizedText('Failed to recognize text from the image.');
+        console.error('Error during OCR and scoring:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    performOCR();
+    performOCRAndScoring();
   }, [ocrPhoto]);
 
   return (
     <ScrollView style={styles.container}>
-      {/* Header Section */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => setIsModalVisible(true)}>
           <Image source={{uri: coverPhoto}} style={styles.image} />
         </TouchableOpacity>
         <View style={styles.headerText}>
-          {/* Always use rank "C" */}
-          <Ranker rank="C" />
+          <Ranker rank={rank} />
+          <Text style={styles.healthScoreText}>
+            {healthScore !== null
+              ? `Health Score: ${(healthScore * 100).toFixed(2)}%`
+              : 'Calculating...'}
+          </Text>
         </View>
       </View>
 
-      {/* OCR Section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Recognized Ingredients:</Text>
         {loading ? (
           <ActivityIndicator size="large" color="#3498db" />
         ) : (
-          <Text style={styles.ingredientsText}>
-            {recognizedText || 'No text found.'}
+          recognizedIngredients.map((ingredient, index) => (
+            <Text key={index} style={styles.ingredientsText}>
+              {ingredient}
+            </Text>
+          ))
+        )}
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Not Found in Current Database:</Text>
+        {loading ? (
+          <ActivityIndicator size="large" color="#3498db" />
+        ) : (
+          unrecognizedIngredients.map((ingredient, index) => (
+            <Text key={index} style={styles.unrecognizedText}>
+              {ingredient}
+            </Text>
+          ))
+        )}
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Harmful Flags:</Text>
+        {harmfulFlags.carcinogenic.length === 0 &&
+        harmfulFlags.preservative.length === 0 ? (
+          <Text style={styles.noNegativesText}>
+            No harmful ingredients detected.
           </Text>
+        ) : (
+          [
+            ...harmfulFlags.carcinogenic.map(flag => ({
+              text: `${flag} (Carcinogenic)`,
+              color: 'red',
+            })),
+            ...harmfulFlags.preservative.map(flag => ({
+              text: `${flag} (Preservative)`,
+              color: 'orange',
+            })),
+          ].map((item, index) => (
+            <Text
+              key={index}
+              style={[styles.negativeText, {color: item.color}]}>
+              {item.text}
+            </Text>
+          ))
         )}
       </View>
 
-      {/* Negatives Section */}
-      <View style={styles.section}>
-        <TouchableOpacity onPress={() => setShowNegatives(!showNegatives)}>
-          <View style={styles.sectionTitleContainer}>
-            <Text style={styles.sectionTitle}>Negatives</Text>
-            <Icon
-              name={showNegatives ? 'chevron-up' : 'chevron-down'}
-              size={20}
-              color="#333"
-            />
-          </View>
-        </TouchableOpacity>
-        {showNegatives && (
-          <View>
-            {negatives.map((item, index) => (
-              <View key={index} style={styles.listItem}>
-                <Text style={styles.negativeText}>{item.text}</Text>
-                <View style={[styles.dot, {backgroundColor: item.color}]} />
-              </View>
-            ))}
-          </View>
-        )}
-      </View>
-
-      {/* Positives Section */}
-      <View style={styles.section}>
-        <TouchableOpacity onPress={() => setShowPositives(!showPositives)}>
-          <View style={styles.sectionTitleContainer}>
-            <Text style={styles.sectionTitle}>Positives</Text>
-            <Icon
-              name={showPositives ? 'chevron-up' : 'chevron-down'}
-              size={20}
-              color="#333"
-            />
-          </View>
-        </TouchableOpacity>
-        {showPositives && (
-          <View>
-            {positives.map((item, index) => (
-              <View key={index} style={styles.listItem}>
-                <Text style={styles.positiveText}>{item.text}</Text>
-                <View style={[styles.dot, {backgroundColor: item.color}]} />
-              </View>
-            ))}
-          </View>
-        )}
-      </View>
-
-      {/* Full-Screen Modal */}
       <Modal
         visible={isModalVisible}
         transparent={true}
@@ -191,7 +209,6 @@ const ResultScreen: React.FC<ResultScreenProps> = ({route}) => {
   );
 };
 
-// Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -212,11 +229,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
   },
-  title: {
-    fontSize: 30,
+  healthScoreText: {
+    fontSize: 18,
     fontWeight: 'bold',
-    color: '#222',
-    marginBottom: 10,
+    marginTop: 10,
+    color: '#333',
   },
   rankContainer: {
     flexDirection: 'row',
@@ -228,6 +245,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 10,
+    marginRight: 5,
   },
   rankText: {
     fontSize: 16,
@@ -243,35 +261,22 @@ const styles = StyleSheet.create({
     marginBottom: 5,
     color: '#333333',
   },
-  sectionTitleContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  listItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#DDD',
-  },
-  negativeText: {
-    fontSize: 16,
-    color: '#D32F2F',
-  },
-  positiveText: {
-    fontSize: 16,
-    color: '#388E3C',
-  },
-  dot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginLeft: 10,
-  },
   ingredientsText: {
     fontSize: 16,
     color: '#444',
+  },
+  unrecognizedText: {
+    fontSize: 16,
+    color: '#888',
+    fontStyle: 'italic',
+  },
+  noNegativesText: {
+    fontSize: 16,
+    color: '#888',
+    fontStyle: 'italic',
+  },
+  negativeText: {
+    fontSize: 16,
   },
   modalContainer: {
     flex: 1,
@@ -283,6 +288,7 @@ const styles = StyleSheet.create({
     width: '90%',
     height: '80%',
     resizeMode: 'contain',
+    borderRadius: 10,
   },
 });
 

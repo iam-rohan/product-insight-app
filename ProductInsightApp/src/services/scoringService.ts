@@ -3,8 +3,7 @@ import {scaleInput} from './scaler';
 import {runInference} from './inference';
 
 /**
- * Accumulates nutrition and flags for a list of ingredient names,
- * then computes the final product health score using the test logic form collab.
+ * Computes the product health score by analyzing ingredient data.
  */
 export async function computeProductHealthScore(
   ingredientNames: string[],
@@ -12,8 +11,8 @@ export async function computeProductHealthScore(
   overallHealthScore: number;
   ingredientScores: Array<{name: string; score: number}>;
   harmfulFlags: {carcinogenic: string[]; preservative: string[]};
+  unrecognizedIngredients: string[];
 }> {
-  // 1) List of 21 features (matching your TFLite model's input)
   const requiredFeatures = [
     'water_g',
     'energ_kcal',
@@ -36,10 +35,8 @@ export async function computeProductHealthScore(
     'vit_e_mg',
     'vit_d_ug',
     'cholestrl_mg',
-  ] as const;
-  // Note: 'as const' keeps them read-only, but it's optional.
+  ];
 
-  // 2) Prepare accumulators for these nutrients
   const totalNutrients: {[key: string]: number} = {};
   for (const col of requiredFeatures) {
     totalNutrients[col] = 0;
@@ -50,23 +47,22 @@ export async function computeProductHealthScore(
     carcinogenic: [] as string[],
     preservative: [] as string[],
   };
+  const unrecognizedIngredients: string[] = [];
 
-  // 3) Lookup each ingredient, accumulate data
   for (const ingName of ingredientNames) {
+    console.log(`Processing ingredient: "${ingName}"`);
     const row = await findIngredientRowCombined(ingName);
+
     if (!row) {
-      console.log(`No match for ingredient: ${ingName}`);
+      console.warn(`No match found for ingredient: "${ingName}"`);
+      unrecognizedIngredients.push(ingName);
       continue;
     }
 
-    // Convert string flags on the fly
     const isCarcinogenic = row.is_carcinogenic === 'TRUE';
     const isPreservative = row.is_harmful_preservative === 'TRUE';
 
-    // Start from row.health_score or default 1.0
     let ingScore = row.health_score ?? 1.0;
-
-    // Subtract if flagged
     if (isCarcinogenic) {
       ingScore -= 1;
       harmfulFlags.carcinogenic.push(ingName);
@@ -76,38 +72,31 @@ export async function computeProductHealthScore(
       harmfulFlags.preservative.push(ingName);
     }
 
-    // Clamp to [0,1]
     ingScore = Math.max(0, Math.min(1, ingScore));
     ingredientScores.push({name: ingName, score: ingScore});
 
-    // 4) Accumulate the 21 features
     for (const col of requiredFeatures) {
-      // Cast `col` to a valid key of the IngredientRow interface
-      const key = col as keyof typeof row;
-
-      // row[key] is typed as `number | string | undefined`, so cast to number
-      // (since these columns are numeric in your interface)
-      const val = row[key] as number;
+      const val = row[col] as number;
       totalNutrients[col] += val || 0;
     }
   }
 
-  // 5) Convert totals to an array for scaling
   const rawFeatures = requiredFeatures.map(col => totalNutrients[col]);
 
-  // 6) Scale + run TFLite
-  const scaled = scaleInput(rawFeatures);
+  console.log('Total nutrients before scaling:', totalNutrients);
+
+  // Convert Float32Array to number[]
+  const scaled = Array.from(scaleInput(rawFeatures));
   const tflitePrediction = await runInference(scaled);
+
   console.log('TFLite raw prediction:', tflitePrediction);
 
-  // 7) Combine ingredient-level scores into final product score
   let overallHealthScore = 0;
   if (ingredientScores.length > 0) {
     const sum = ingredientScores.reduce((acc, obj) => acc + obj.score, 0);
     overallHealthScore = sum / ingredientScores.length;
   }
 
-  // 8) Additional final deductions for flags
   if (harmfulFlags.carcinogenic.length > 0) {
     overallHealthScore -= 0.5;
   }
@@ -115,12 +104,12 @@ export async function computeProductHealthScore(
     overallHealthScore -= 0.3;
   }
 
-  // 9) Clamp final
   overallHealthScore = Math.max(0, Math.min(1, overallHealthScore));
 
   return {
     overallHealthScore,
     ingredientScores,
     harmfulFlags,
+    unrecognizedIngredients,
   };
 }

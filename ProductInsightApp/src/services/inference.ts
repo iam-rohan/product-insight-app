@@ -1,41 +1,45 @@
-// src/services/inference.ts
-
 import {getTfliteModel} from './tfliteService';
 
 /**
- * Runs inference on a scaled Float32Array (length 21),
- * assuming the model has a final Dense(1) layer.
- *
- * @param scaledFeatures A Float32Array of length 21 (already scaled).
- * @returns A Promise resolving to a single float (the predicted health score).
+ * Runs inference using the loaded TFLite model.
+ * @param scaledInput The scaled input data array.
+ * @returns The inference output as a single number.
  */
-export async function runInference(
-  scaledFeatures: Float32Array,
-): Promise<number> {
-  // 1) Get the loaded TensorflowModel instance
+export async function runInference(scaledInput: number[]): Promise<number> {
   const model = getTfliteModel();
   if (!model) {
-    throw new Error(
-      'TFLite model not loaded! Make sure loadTfliteModel() was called.',
-    );
+    throw new Error('TFLite model is not loaded');
   }
 
-  // 2) Run inference. react-native-fast-tflite wants an array of input buffers,
-  //    so we wrap scaledFeatures in an array: [scaledFeatures].
-  const output = await model.run([scaledFeatures]);
+  try {
+    // Convert the input into Float32Array for TensorFlow Lite
+    const inputBuffer = new Float32Array(scaledInput);
 
-  console.log('Raw inference output:', output);
+    // Run inference on the model
+    const output = await model.run([inputBuffer]);
 
-  // 3) For a single Dense(1) output, we expect output to be something like [0.72].
-  if (
-    Array.isArray(output) &&
-    output.length > 0 &&
-    typeof output[0] === 'number'
-  ) {
-    return output[0];
-  } else {
-    throw new Error(
-      'Unexpected output shape. Expected a single float from Dense(1).',
-    );
+    console.log('Raw inference output:', output);
+
+    // Safely extract the first value from the output
+    if (Array.isArray(output) && output.length > 0) {
+      const firstElement = output[0];
+      if (Array.isArray(firstElement)) {
+        return Number(firstElement[0]);
+      } else if (
+        firstElement instanceof Float32Array ||
+        ArrayBuffer.isView(firstElement)
+      ) {
+        // TypedArray output
+        return Number(firstElement[0]);
+      } else {
+        // Flat array output
+        return Number(firstElement);
+      }
+    }
+
+    throw new Error('Unexpected output shape from TFLite model');
+  } catch (error) {
+    console.error('Error during inference:', error);
+    throw error;
   }
 }

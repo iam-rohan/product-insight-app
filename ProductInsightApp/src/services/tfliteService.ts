@@ -10,13 +10,18 @@ let model: TensorflowModel | null = null;
  */
 export async function loadTfliteModel() {
   try {
-    // Use require to load from src/assets
-    model = await loadTensorflowModel(
-      require('src/assets/health_score_model_v1.tflite'),
-    );
+    // Correct relative path for require
+    const modelPath = require('../assets/health_score_model_v1.tflite');
+    console.log('Resolved model path:', modelPath);
+
+    // Load the model using react-native-fast-tflite
+    model = await loadTensorflowModel(modelPath);
     console.log('TFLite model loaded successfully!');
   } catch (error) {
-    console.error('Error loading TFLite model:', error);
+    console.error(
+      'Error loading TFLite model. Ensure the path is correct:',
+      error,
+    );
     throw error;
   }
 }

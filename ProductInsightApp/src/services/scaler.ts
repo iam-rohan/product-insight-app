@@ -1,9 +1,3 @@
-// src/services/scaler.ts
-
-/**
- * The mean values for each of the 21 features, in the exact order
- * of the model's input.
- */
 export const MEANS = [
   54.053757746155604, // water_g
   226.08773238466836, // energ_kcal
