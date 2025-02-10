@@ -10,8 +10,9 @@ import {
 import {RouteProp} from '@react-navigation/native';
 import {StackNavigationProp} from '@react-navigation/stack';
 import {storePhotos, initDatabase} from '../database/database';
+import Icon from 'react-native-vector-icons/FontAwesome'; // Import FontAwesome icons
 
-// Define the parameter list for navigation
+// Define navigation params
 type RootStackParamList = {
   Home: undefined;
   Camera: undefined;
@@ -19,7 +20,7 @@ type RootStackParamList = {
   Confirmation: {photos: string[]};
 };
 
-// Define the props for the ConfirmationScreen
+// Define props for the screen
 type ConfirmationScreenProps = {
   route: RouteProp<RootStackParamList, 'Confirmation'>;
   navigation: StackNavigationProp<RootStackParamList, 'Confirmation'>;
@@ -29,37 +30,26 @@ const ConfirmationScreen: React.FC<ConfirmationScreenProps> = ({
   route,
   navigation,
 }) => {
-  const {photos} = route.params; // Destructure the photos from the route params
+  const {photos} = route.params;
   const [images, setImages] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const initializeDatabase = async () => {
-      await initDatabase(); // Ensure the database is initialized
-      const validImages = photos.map(photo => `file://${photo}`);
-      setImages(validImages);
+      await initDatabase();
+      setImages(photos.map(photo => `file://${photo}`));
       setIsLoading(false);
     };
-
     initializeDatabase();
   }, [photos]);
 
-  const handleRetake = () => {
-    navigation.replace('Camera');
-  };
+  const handleRetake = () => navigation.replace('Camera');
 
   const handleConfirm = async () => {
     try {
-      console.log('Photos confirmed:', images);
-
-      // Store photos in the database
-      const coverPhoto = images[0]; // First image as cover photo
-      const ocrPhoto = images[1]; // Second image as OCR photo
+      const coverPhoto = images[0];
+      const ocrPhoto = images[1];
       await storePhotos(coverPhoto, ocrPhoto);
-
-      console.log('Photos stored successfully');
-
-      // Navigate to Result screen, passing recognized productName and ingredients
       navigation.navigate('Result', {coverPhoto, ocrPhoto});
     } catch (error) {
       console.error('Error during confirmation:', error);
@@ -70,22 +60,34 @@ const ConfirmationScreen: React.FC<ConfirmationScreenProps> = ({
     <View style={styles.container}>
       <Text style={styles.header}>Confirm Your Photos</Text>
       {isLoading ? (
-        <ActivityIndicator size="large" color="#0000ff" />
+        <ActivityIndicator size="large" color="#007AFF" />
       ) : (
         <View style={styles.imageContainer}>
           {images.map((uri, index) => (
-            <Image key={index} source={{uri}} style={styles.image} />
+            <View key={index} style={styles.imageWrapper}>
+              <Image source={{uri}} style={styles.image} />
+              <View style={styles.iconContainer}>
+                {/* Retake Button - Using "refresh" icon for retry */}
+                {index === 0 && (
+                  <TouchableOpacity
+                    onPress={handleRetake}
+                    style={[styles.button, styles.refreshButton]}>
+                    <Icon name="refresh" size={24} color="#fff" />
+                  </TouchableOpacity>
+                )}
+                {/* Confirm Button */}
+                {index === 1 && (
+                  <TouchableOpacity
+                    onPress={handleConfirm}
+                    style={[styles.button, styles.confirmButton]}>
+                    <Icon name="check" size={24} color="#fff" />
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
           ))}
         </View>
       )}
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.button} onPress={handleRetake}>
-          <Text style={styles.buttonText}>Retake Photos</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.button} onPress={handleConfirm}>
-          <Text style={styles.buttonText}>Confirm Photos</Text>
-        </TouchableOpacity>
-      </View>
     </View>
   );
 };
@@ -93,48 +95,54 @@ const ConfirmationScreen: React.FC<ConfirmationScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'space-between',
-    padding: 16,
-    backgroundColor: '#A8D5BA',
-  },
-  header: {
-    color: 'black',
-    fontSize: 20,
-    marginBottom: 16,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  imageContainer: {
-    flex: 2,
-    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: '3%',
+    backgroundColor: '#F0F0F0',
+    padding: 20,
   },
-  image: {
-    width: '50%', // Adjusted width for better fit
-    height: '100%',
-    borderWidth: 1,
-    borderColor: '#fff',
-    margin: 5,
-    borderRadius: 8, // Optional: added border radius for aesthetics
+  header: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 20,
   },
-  buttonContainer: {
-    flex: 1,
+  imageContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'center',
+    marginBottom: 20, // Space between the image and buttons
+  },
+  imageWrapper: {
     alignItems: 'center',
   },
-  button: {
-    backgroundColor: '#CAE5D5',
-    borderRadius: 10,
-    padding: 10,
-    width: '40%',
+  image: {
+    width: 150,
+    height: 200,
+    borderRadius: 12,
+    backgroundColor: '#DDD',
   },
-  buttonText: {
-    color: 'black',
-    textAlign: 'center',
-    fontWeight: 'bold',
+  iconContainer: {
+    marginTop: 20,
+    flexDirection: 'row',
+    justifyContent: 'center', // This centers the buttons
+    marginHorizontal: 5, // Reduce this margin for a more compact layout
+  },
+  button: {
+    width: 50, // Smaller button size for simplicity
+    height: 50, // Circular button size
+    borderRadius: 25, // Circular button shape
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2, // Light border to keep it minimal
+    borderColor: '#000', // Light gray border
+    marginHorizontal: 50, // Decrease margin between buttons
+  },
+  refreshButton: {
+    backgroundColor: 'red', // Set red background for the refresh button
+    borderColor: 'red', // Set red border for the refresh button
+  },
+  confirmButton: {
+    backgroundColor: 'green', // Set green background for the confirm button
+    borderColor: 'green', // Set green border for the confirm button
   },
 });
 
