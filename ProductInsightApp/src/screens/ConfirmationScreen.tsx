@@ -11,12 +11,11 @@ import {RouteProp} from '@react-navigation/native';
 import {StackNavigationProp} from '@react-navigation/stack';
 import {storePhotos, initDatabase} from '../database/database';
 
-
 // Define the parameter list for navigation
 type RootStackParamList = {
   Home: undefined;
   Camera: undefined;
-  Result: { coverPhoto: string; ocrPhoto: string };
+  Result: {coverPhoto: string; ocrPhoto: string};
   Confirmation: {photos: string[]};
 };
 
@@ -60,10 +59,8 @@ const ConfirmationScreen: React.FC<ConfirmationScreenProps> = ({
 
       console.log('Photos stored successfully');
 
-    
-
       // Navigate to Result screen, passing recognized productName and ingredients
-      navigation.navigate('Result', { coverPhoto, ocrPhoto });
+      navigation.navigate('Result', {coverPhoto, ocrPhoto});
     } catch (error) {
       console.error('Error during confirmation:', error);
     }

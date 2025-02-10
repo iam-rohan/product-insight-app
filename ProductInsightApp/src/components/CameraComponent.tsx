@@ -7,10 +7,7 @@ import {
   Text,
   Alert,
 } from 'react-native';
-import {
-  Camera,
-  useCameraDevices,
-} from 'react-native-vision-camera';
+import {Camera, useCameraDevices} from 'react-native-vision-camera';
 import ImageCropPicker from 'react-native-image-crop-picker';
 import {useNavigation} from '@react-navigation/native';
 import {StackNavigationProp} from '@react-navigation/stack';
@@ -27,12 +24,12 @@ const CameraComponent: React.FC = () => {
     null,
   );
   const [photos, setPhotos] = useState<string[]>([]);
-  const [isCropping, setIsCropping] = useState<boolean>(false); // Track cropping state
+  const [isCropping, setIsCropping] = useState<boolean>(false);
   const cameraRef = useRef<Camera>(null);
   const navigation = useNavigation<NavigationProps>();
 
   const devices = useCameraDevices();
-  const device = devices.find(d => d.position === 'back'); // Ensure we get the back camera
+  const device = devices.find(d => d.position === 'back');
 
   useEffect(() => {
     const requestCameraPermission = async () => {
@@ -55,7 +52,6 @@ const CameraComponent: React.FC = () => {
         setPhotos(prevPhotos => {
           const newPhotos = [...prevPhotos, photoUri];
           if (newPhotos.length === 2) {
-            // Start cropping only after the second photo
             cropPhoto(newPhotos[1], newPhotos);
           }
           return newPhotos;
@@ -68,7 +64,7 @@ const CameraComponent: React.FC = () => {
   };
 
   const cropPhoto = (photoUri: string, newPhotos: string[]) => {
-    setIsCropping(true); // Set cropping state to true
+    setIsCropping(true);
 
     ImageCropPicker.openCropper({
       path: photoUri,
@@ -81,7 +77,7 @@ const CameraComponent: React.FC = () => {
       .then(croppedImage => {
         const croppedPhotoUri = croppedImage.path;
         const updatedPhotos = [...newPhotos];
-        updatedPhotos[1] = croppedPhotoUri; // Update the second photo with cropped version
+        updatedPhotos[1] = croppedPhotoUri;
         navigation.navigate('Confirmation', {photos: updatedPhotos});
       })
       .catch(error => {
@@ -89,11 +85,10 @@ const CameraComponent: React.FC = () => {
         Alert.alert('Error', 'There was an error cropping the photo.');
       })
       .finally(() => {
-        setIsCropping(false); // Reset cropping state after operation
+        setIsCropping(false);
       });
   };
 
-  // Render loading, no access, and camera UI conditions
   if (cameraPermission === null) {
     return <Text>Loading...</Text>;
   }
@@ -118,20 +113,19 @@ const CameraComponent: React.FC = () => {
         />
       )}
 
-      <TouchableOpacity style={styles.button} onPress={handleTakePhoto}>
-        <Text style={styles.buttonText}>Take Photo</Text>
-      </TouchableOpacity>
+      {/* Capture button */}
+      <TouchableOpacity style={styles.button} onPress={handleTakePhoto} />
 
-      <View style={styles.previewContainer}>
-        {photos.map((photo, index) => (
+      {/* Overlay Image at Bottom-Left */}
+      {photos.length > 0 && (
+        <View style={styles.overlayContainer}>
           <Image
-            key={index}
-            source={{uri: photo}}
-            style={styles.preview}
+            source={{uri: photos[photos.length - 1]}}
+            style={styles.overlay}
             resizeMode="cover"
           />
-        ))}
-      </View>
+        </View>
+      )}
     </View>
   );
 };
@@ -139,35 +133,38 @@ const CameraComponent: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#000',
   },
   camera: {
-    flex: 1,
-  },
-  previewContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    margin: 10,
-  },
-  preview: {
-    width: 100,
-    height: 100,
-    margin: 5,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#ccc',
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 10,
+    overflow: 'hidden',
   },
   button: {
-    backgroundColor: '#CAE5D5',
-    borderRadius: 10,
-    padding: 10,
-    width: '40%',
+    position: 'absolute',
+    bottom: 50,
     alignSelf: 'center',
-    marginVertical: 10,
+    width: 80,
+    height: 80,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    borderRadius: 40,
+    borderWidth: 4,
+    borderColor: '#FFF',
   },
-  buttonText: {
-    color: 'black',
-    textAlign: 'center',
-    fontWeight: 'bold',
+  overlayContainer: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+  },
+  overlay: {
+    width: 70,
+    height: 70,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#fff',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
 });
 
