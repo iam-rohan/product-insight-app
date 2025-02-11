@@ -56,7 +56,8 @@ const Ranker: React.FC<{rank: RankType}> = ({rank}) => {
             styles.rankBox,
             {
               backgroundColor: getRankColor(r),
-              transform: r === rank ? [{scale: 1.5}] : [{scale: 1}],
+              transform: r === rank ? [{ scale: 1.5 }] : [{ scale: 1 }],
+              marginHorizontal: r === rank ? 8 : 0, // Increased margin for selected rank
             },
           ]}>
           <Text style={styles.rankText}>{r}</Text>
@@ -238,6 +239,8 @@ const styles = StyleSheet.create({
   },
   rankContainer: {
     flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginTop: 10,
   },
   rankBox: {
@@ -246,7 +249,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 10,
-    marginRight: 5,
   },
   rankText: {
     fontSize: 16,
