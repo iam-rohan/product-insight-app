@@ -1,6 +1,9 @@
 import SQLite, {SQLiteDatabase} from 'react-native-sqlite-storage';
 
+
 let database: SQLiteDatabase;
+type RankType = 'A' | 'B' | 'C' | 'D' | 'E';
+
 
 export const initDatabase = async () => {
   database = await SQLite.openDatabase({
@@ -11,45 +14,33 @@ export const initDatabase = async () => {
   // Create the Photos table if it doesn't exist
   database.transaction((tx) => {
     tx.executeSql(
-      'CREATE TABLE IF NOT EXISTS Photos (id INTEGER PRIMARY KEY AUTOINCREMENT, coverPhoto TEXT, ocrPhoto TEXT)',
+      'CREATE TABLE IF NOT EXISTS Photos (id INTEGER PRIMARY KEY AUTOINCREMENT, coverPhoto TEXT, ocrPhoto TEXT, rank TEXT DEFAULT "C")',
       [],
       () => {
         console.log('Photos table verified or created successfully');
       },
       (_, error) => {
         console.error('Error creating Photos table during initialization:', error);
-        return true; // Handle the error gracefully
+        return true;
       }
     );
   });
+  
 
   console.log('Database initialized');
 };
 
 
-export const storePhotos = async (coverPhoto: string, ocrPhoto: string) => {
+export const storePhotos = async (coverPhoto: string, ocrPhoto: string, rank: RankType='C') => {
   return new Promise<void>((resolve, reject) => {
     database.transaction(tx => {
-      // Create table if it doesn't exist
-      tx.executeSql(
-        'CREATE TABLE IF NOT EXISTS Photos (id INTEGER PRIMARY KEY AUTOINCREMENT, coverPhoto TEXT, ocrPhoto TEXT)',
-        [],
-        () => {
-          console.log('Table created successfully');
-        },
-        (_, error) => {
-          console.error('Error creating table:', error);
-          reject(error);
-          return true; // Return true to indicate error is handled
-        },
-      );
-
+   
       // Insert the photos into the Photos table
       tx.executeSql(
-        'INSERT INTO Photos (coverPhoto, ocrPhoto) VALUES (?, ?)',
-        [coverPhoto, ocrPhoto],
+        'INSERT INTO Photos (coverPhoto, ocrPhoto, rank) VALUES (?, ?, ?)',
+        [coverPhoto, ocrPhoto, rank],
         (_, result) => {
-          console.log('Photos stored successfully:', result);
+          console.log('Photos stored successfully with rank:', rank);
           resolve();
         },
         (_, error) => {
@@ -64,7 +55,7 @@ export const storePhotos = async (coverPhoto: string, ocrPhoto: string) => {
 
 // Function to get all stored photos
 export const getPhotos = async (): Promise<
-  { id: number; coverPhoto: string; ocrPhoto: string }[]
+  { id: number; coverPhoto: string; ocrPhoto: string; rank: RankType }[]
 > => {
   return new Promise((resolve) => {
     database.transaction(
@@ -77,23 +68,22 @@ export const getPhotos = async (): Promise<
             for (let i = 0; i < result.rows.length; i++) {
               photos.push(result.rows.item(i));
             }
-            resolve(photos); // Return photos (even empty)
+            resolve(photos);
           },
           (_, error) => {
             console.log('No photos found or database error:', error);
-            resolve([]); // Return an empty array if an error occurs
-            return true; // Handle the error gracefully
+            resolve([]);
+            return true;
           }
         );
       },
       (error) => {
         console.error('Transaction error during getPhotos:', error);
-        resolve([]); // Return an empty array if the transaction fails
+        resolve([]);
       }
     );
   });
 };
-
 
 // Function to delete a photo by ID
 export const deletePhoto = async (id: number) => {

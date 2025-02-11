@@ -60,14 +60,17 @@ const HistoryScreen = () => {
   const loadPhotos = async () => {
     setIsLoading(true);
     const storedPhotos = await getPhotos();
-
-    // Ensure each photo has a rank property (set a default rank if missing)
-    const photosWithRank = storedPhotos.map(photo => ({
-      ...photo,
-      rank: 'C',  
-    }));
-
-    setPhotos(photosWithRank);
+  
+    // Filter out duplicate entries and ensure each photo has a rank
+    const uniquePhotos = storedPhotos.reduce((acc: Photo[], photo) => {
+      const exists = acc.find((p) => p.coverPhoto === photo.coverPhoto);
+      if (!exists && photo.rank) {
+        acc.push(photo);
+      }
+      return acc;
+    }, []);
+  
+    setPhotos(uniquePhotos);
     setIsLoading(false);
   };
 
