@@ -12,6 +12,21 @@ type Photo = {
   coverPhoto: string;
   ocrPhoto: string;
   rank: string; // Make sure 'rank' is part of the type definition
+  timestamp: number; // Timestamp stored in seconds
+};
+const getTimeAgo = (timestamp: number): string => {
+  const now = Math.floor(Date.now() / 1000); // Current time in seconds
+  const diffInSeconds = now - timestamp;
+
+  if (diffInSeconds < 60) {
+    return `${diffInSeconds} sec ago`;
+  } else if (diffInSeconds < 3600) {
+    return `${Math.floor(diffInSeconds / 60)} min ago`;
+  } else if (diffInSeconds < 86400) {
+    return `${Math.floor(diffInSeconds / 3600)} hrs ago`;
+  } else {
+    return `${Math.floor(diffInSeconds / 86400)} days ago`;
+  }
 };
 
 // Get the color associated with a rank
@@ -85,6 +100,7 @@ const HistoryScreen = () => {
     navigation.navigate('Result', { 
       coverPhoto: photo.coverPhoto,
       ocrPhoto: photo.ocrPhoto,
+      timestamp: photo.timestamp
    
     });// Removed rank from navigation
   };
@@ -96,21 +112,21 @@ const HistoryScreen = () => {
 
   // Render each item in the FlatList
   // Render each item in the FlatList
-const renderItem = ({ item, index }: { item: Photo; index: number }) => (
-  <TouchableOpacity onPress={() => handlePhotoClick(item)} style={styles.photoItem}>
-    <Image source={{ uri: item.coverPhoto }} style={styles.photoImage} />
-    <View style={styles.photoInfo}>
-      <Text style={styles.photoTitle}>Click {index + 1}</Text>
-      <View style={styles.scanInfo}>
-        <Icon name="undo" size={14} color="#555" style={styles.scanIcon} />
-        <Text style={styles.scanDate}>1 min ago</Text>
+  const renderItem = ({ item, index }: { item: Photo; index: number }) => (
+    <TouchableOpacity onPress={() => handlePhotoClick(item)} style={styles.photoItem}>
+      <Image source={{ uri: item.coverPhoto }} style={styles.photoImage} />
+      <View style={styles.photoInfo}>
+        <Text style={styles.photoTitle}>Click {index + 1}</Text>
+        <View style={styles.scanInfo}>
+          <Icon name="undo" size={14} color="#555" style={styles.scanIcon} />
+          <Text style={styles.scanDate}>{getTimeAgo(item.timestamp)}</Text>
+        </View>
+        <TouchableOpacity onPress={() => handleDelete(item.id)} style={styles.deleteButton}>
+          <Text style={styles.deleteText}>Delete</Text>
+        </TouchableOpacity>
       </View>
-      <TouchableOpacity onPress={() => handleDelete(item.id)} style={styles.deleteButton}>
-        <Text style={styles.deleteText}>Delete</Text>
-      </TouchableOpacity>
-    </View>
-    <Ranker rank={item.rank} />
-  </TouchableOpacity>
+      <Ranker rank={item.rank} />
+    </TouchableOpacity>
 );
 
   return (

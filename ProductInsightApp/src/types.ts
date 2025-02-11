@@ -3,5 +3,6 @@ export type RootStackParamList = {
   Result: {
     coverPhoto: string;
     ocrPhoto: string;
+    timestamp: number;
   };
 };

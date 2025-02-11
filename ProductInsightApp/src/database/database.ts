@@ -3,6 +3,14 @@ import SQLite, {SQLiteDatabase} from 'react-native-sqlite-storage';
 
 let database: SQLiteDatabase;
 type RankType = 'A' | 'B' | 'C' | 'D' | 'E';
+type Photo = {
+  id: number;
+  coverPhoto: string;
+  ocrPhoto: string;
+  rank: RankType;
+  timestamp: number;
+};
+
 
 
 export const initDatabase = async () => {
@@ -14,37 +22,41 @@ export const initDatabase = async () => {
   // Create the Photos table if it doesn't exist
   database.transaction((tx) => {
     tx.executeSql(
-      'CREATE TABLE IF NOT EXISTS Photos (id INTEGER PRIMARY KEY AUTOINCREMENT, coverPhoto TEXT, ocrPhoto TEXT, rank TEXT DEFAULT "C")',
+      `CREATE TABLE IF NOT EXISTS Photos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, 
+        coverPhoto TEXT, 
+        ocrPhoto TEXT, 
+        rank TEXT DEFAULT 'C', 
+        timestamp INTEGER DEFAULT (CAST(strftime('%s', 'now') AS INTEGER))
+      )`,
       [],
-      () => {
-        console.log('Photos table verified or created successfully');
-      },
+      () => console.log('Photos table verified or created successfully'),
       (_, error) => {
-        console.error('Error creating Photos table during initialization:', error);
+        console.error('Error creating Photos table:', error);
         return true;
       }
     );
   });
-  
+
 
   console.log('Database initialized');
 };
 
 
-export const storePhotos = async (coverPhoto: string, ocrPhoto: string, rank: RankType='C') => {
+export const storePhotos = async (coverPhoto: string, ocrPhoto: string, rank: RankType = 'C') => {
   return new Promise<void>((resolve, reject) => {
+    const timestamp = Math.floor(Date.now() / 1000); // Ensure correct timestamp format
+    
     database.transaction(tx => {
-   
-      // Insert the photos into the Photos table
       tx.executeSql(
-        'INSERT INTO Photos (coverPhoto, ocrPhoto, rank) VALUES (?, ?, ?)',
-        [coverPhoto, ocrPhoto, rank],
-        (_, result) => {
-          console.log('Photos stored successfully with rank:', rank);
+        'INSERT INTO Photos (coverPhoto, ocrPhoto, rank, timestamp) VALUES (?, ?, ?, ?)',
+        [coverPhoto, ocrPhoto, rank, timestamp],
+        () => {
+          console.log('Photo stored successfully with rank:', rank);
           resolve();
         },
         (_, error) => {
-          console.error('Error storing photos:', error);
+          console.error('Error storing photo:', error);
           reject(error);
           return true;
         },
@@ -53,25 +65,31 @@ export const storePhotos = async (coverPhoto: string, ocrPhoto: string, rank: Ra
   });
 };
 
+
 // Function to get all stored photos
-export const getPhotos = async (): Promise<
-  { id: number; coverPhoto: string; ocrPhoto: string; rank: RankType }[]
-> => {
+export const getPhotos = async (): Promise<Photo[]> => {
   return new Promise((resolve) => {
     database.transaction(
       (tx) => {
         tx.executeSql(
-          'SELECT * FROM Photos ORDER BY id DESC',
+          'SELECT id, coverPhoto, ocrPhoto, rank, timestamp FROM Photos ORDER BY id DESC',
           [],
           (_, result) => {
-            const photos = [];
+            const photos: Photo[] = [];
             for (let i = 0; i < result.rows.length; i++) {
-              photos.push(result.rows.item(i));
+              const item = result.rows.item(i);
+              photos.push({
+                id: item.id,
+                coverPhoto: item.coverPhoto,
+                ocrPhoto: item.ocrPhoto,
+                rank: item.rank,
+                timestamp: item.timestamp,
+              });
             }
             resolve(photos);
           },
           (_, error) => {
-            console.log('No photos found or database error:', error);
+            console.error('Error retrieving photos:', error);
             resolve([]);
             return true;
           }
@@ -84,6 +102,7 @@ export const getPhotos = async (): Promise<
     );
   });
 };
+
 
 // Function to delete a photo by ID
 export const deletePhoto = async (id: number) => {
