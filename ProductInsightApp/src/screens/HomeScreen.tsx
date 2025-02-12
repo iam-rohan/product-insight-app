@@ -1,5 +1,4 @@
 import React from 'react';
-
 import {
   View,
   Text,
@@ -9,10 +8,6 @@ import {
   Dimensions,
 } from 'react-native';
 import {NavigationProp, ParamListBase} from '@react-navigation/native';
-=====
-import {View, Text, StyleSheet, TouchableOpacity, Image} from 'react-native';
-import {NavigationProp, ParamListBase} from '@react-navigation/native'; // Import ParamListBase
-
 import Icon from 'react-native-vector-icons/FontAwesome';
 
 type HomeScreenProps = {
@@ -22,7 +17,6 @@ type HomeScreenProps = {
 const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
   return (
     <View style={styles.container}>
-
       {/* Logo Container */}
       <View style={styles.logoContainer}>
         <Image
@@ -30,14 +24,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
           style={[styles.logo, {tintColor: '#D9D9D9'}]}
         />
       </View>
-     <Image source={require('../assets/Logo.png')} style={styles.logo} />
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => navigation.navigate('Search')}>
-        <Text style={styles.buttonText}>Search Ingredient</Text>
-        <Icon name="search" size={20} color="#ffffff" style={styles.icon} />
-      </TouchableOpacity>
-
 
       {/* Buttons Container */}
       <View style={styles.buttonsContainer}>
@@ -101,12 +87,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '100%',
     marginTop: Dimensions.get('window').height * 0.35 + 125,
-  },
-  logo: {
-    width: 450, 
-    height: 300, 
-    resizeMode: 'contain', 
-    marginBottom: 20, 
   },
   button: {
     backgroundColor: '#3B7A57',
