@@ -2,9 +2,6 @@ import {findIngredientRowCombined} from './ingredientLookup';
 import {scaleInput} from './scaler';
 import {runInference} from './inference';
 
-/**
- * Computes the product health score by analyzing ingredient data.
- */
 export async function computeProductHealthScore(
   ingredientNames: string[],
 ): Promise<{
@@ -62,22 +59,23 @@ export async function computeProductHealthScore(
     const isCarcinogenic = row.is_carcinogenic === 'TRUE';
     const isPreservative = row.is_harmful_preservative === 'TRUE';
 
-    let ingScore = row.health_score ?? 1.0;
-    if (isCarcinogenic) {
-      ingScore -= 1;
-      harmfulFlags.carcinogenic.push(ingName);
-    }
-    if (isPreservative) {
-      ingScore -= 1;
-      harmfulFlags.preservative.push(ingName);
-    }
-
-    ingScore = Math.max(0, Math.min(1, ingScore));
-    ingredientScores.push({name: ingName, score: ingScore});
-
     for (const col of requiredFeatures) {
       const val = row[col] as number;
       totalNutrients[col] += val || 0;
+    }
+
+    // Optional: Calculate individual ingredient score using the model
+    const rawFeatures = requiredFeatures.map(col => row[col] as number);
+    const scaled = Array.from(scaleInput(rawFeatures));
+    const ingScore = await runInference(scaled);
+
+    ingredientScores.push({name: ingName, score: ingScore});
+
+    if (isCarcinogenic) {
+      harmfulFlags.carcinogenic.push(ingName);
+    }
+    if (isPreservative) {
+      harmfulFlags.preservative.push(ingName);
     }
   }
 
@@ -91,11 +89,7 @@ export async function computeProductHealthScore(
 
   console.log('TFLite raw prediction:', tflitePrediction);
 
-  let overallHealthScore = 0;
-  if (ingredientScores.length > 0) {
-    const sum = ingredientScores.reduce((acc, obj) => acc + obj.score, 0);
-    overallHealthScore = sum / ingredientScores.length;
-  }
+  let overallHealthScore = tflitePrediction;
 
   if (harmfulFlags.carcinogenic.length > 0) {
     overallHealthScore -= 0.5;

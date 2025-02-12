@@ -14,8 +14,10 @@ import {RouteProp} from '@react-navigation/native';
 import {recognizeTextFromImage} from '../services/mlkit';
 import {parseIngredients} from '../services/parseIngredients';
 import {computeProductHealthScore} from '../services/scoringService';
+import { storePhotos } from '../database/database';
 
-type RankType = 'A' | 'B' | 'C' | 'D' | 'E';
+
+ type RankType = 'A' | 'B' | 'C' | 'D' | 'E';
 
 type RootStackParamList = {
   Result: {coverPhoto: string; ocrPhoto: string};
@@ -54,7 +56,8 @@ const Ranker: React.FC<{rank: RankType}> = ({rank}) => {
             styles.rankBox,
             {
               backgroundColor: getRankColor(r),
-              transform: r === rank ? [{scale: 1.5}] : [{scale: 1}],
+              transform: r === rank ? [{ scale: 1.5 }] : [{ scale: 1 }],
+              marginHorizontal: r === rank ? 8 : 0, // Increased margin for selected rank
             },
           ]}>
           <Text style={styles.rankText}>{r}</Text>
@@ -95,37 +98,36 @@ const ResultScreen: React.FC<ResultScreenProps> = ({route}) => {
     const performOCRAndScoring = async () => {
       try {
         setLoading(true);
-
+  
         const text = await recognizeTextFromImage(ocrPhoto);
-
         const ingredientList = text ? parseIngredients(text) : [];
-
         const scoreResult = await computeProductHealthScore(ingredientList);
+  
         setHealthScore(scoreResult.overallHealthScore);
-
-        setRecognizedIngredients(
-          ingredientList.filter(ingredient =>
-            scoreResult.ingredientScores.some(
-              score => score.name === ingredient,
-            ),
-          ),
-        );
-        setUnrecognizedIngredients(scoreResult.unrecognizedIngredients);
-
         const computedRank = mapScoreToRank(scoreResult.overallHealthScore);
         setRank(computedRank);
-
+  
+        setRecognizedIngredients(
+          ingredientList.filter(ingredient =>
+            scoreResult.ingredientScores.some(score => score.name === ingredient)
+          )
+        );
+        setUnrecognizedIngredients(scoreResult.unrecognizedIngredients);
         setHarmfulFlags(scoreResult.harmfulFlags);
+  
+        // Store result in the database
+        await storePhotos(coverPhoto, ocrPhoto, computedRank);
+  
       } catch (error) {
         console.error('Error during OCR and scoring:', error);
       } finally {
         setLoading(false);
       }
     };
-
+  
     performOCRAndScoring();
   }, [ocrPhoto]);
-
+  
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
@@ -237,6 +239,8 @@ const styles = StyleSheet.create({
   },
   rankContainer: {
     flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginTop: 10,
   },
   rankBox: {
@@ -245,7 +249,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 10,
-    marginRight: 5,
   },
   rankText: {
     fontSize: 16,
