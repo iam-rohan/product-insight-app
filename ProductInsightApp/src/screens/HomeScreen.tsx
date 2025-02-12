@@ -20,7 +20,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
       {/* Logo Container */}
       <View style={styles.LogoContainer}>
         <Image
-          source={require('../assets/logo.png')}
+          source={require('../assets/Logo.png')}
           style={[styles.logo, {tintColor: '#D9D9D9'}]}
         />
       </View>
