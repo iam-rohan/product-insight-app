@@ -1,3 +1,4 @@
+// metro.config.js
 const {getDefaultConfig, mergeConfig} = require('@react-native/metro-config');
 
 /**
@@ -8,4 +9,12 @@ const {getDefaultConfig, mergeConfig} = require('@react-native/metro-config');
  */
 const config = {};
 
-module.exports = mergeConfig(getDefaultConfig(__dirname), config);
+module.exports = (() => {
+  const defaultConfig = getDefaultConfig(__dirname);
+
+  // Add '.tflite' to assetExts
+  defaultConfig.resolver.assetExts.push('tflite');
+
+  // Merge your custom config (currently empty) with the modified default
+  return mergeConfig(defaultConfig, config);
+})();
