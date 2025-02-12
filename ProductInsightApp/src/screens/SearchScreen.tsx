@@ -109,6 +109,7 @@ const SearchScreen: React.FC = () => {
             <TextInput
               style={styles.searchInput}
               placeholder="Enter ingredients (comma-separated)..."
+              placeholderTextColor="grey"
               value={query}
               onChangeText={setQuery}
               onSubmitEditing={performSearch}
@@ -260,6 +261,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   searchInput: {
+    color: '#000',
     width: '100%',
     height: '100%',
     borderColor: '#ccc',
@@ -294,6 +296,7 @@ const styles = StyleSheet.create({
   historyTitle: {
     fontSize: 16,
     fontWeight: 'bold',
+    color: 'black',
   },
   clearHistoryText: {
     color: 'red',
