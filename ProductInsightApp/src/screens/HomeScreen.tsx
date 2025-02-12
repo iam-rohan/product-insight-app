@@ -1,5 +1,5 @@
 import React from 'react';
-import {View, Text, StyleSheet, TouchableOpacity} from 'react-native';
+import {View, Text, StyleSheet, TouchableOpacity, Image} from 'react-native';
 import {NavigationProp, ParamListBase} from '@react-navigation/native'; // Import ParamListBase
 import Icon from 'react-native-vector-icons/FontAwesome';
 
@@ -10,6 +10,7 @@ type HomeScreenProps = {
 const HomeScreen: React.FC<HomeScreenProps> = ({navigation}) => {
   return (
     <View style={styles.container}>
+     <Image source={require('../assets/Logo.png')} style={styles.logo} />
       <TouchableOpacity
         style={styles.button}
         onPress={() => navigation.navigate('Search')}>
@@ -40,6 +41,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#D9D9D9',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  logo: {
+    width: 450, 
+    height: 300, 
+    resizeMode: 'contain', 
+    marginBottom: 20, 
   },
   button: {
     backgroundColor: '#3B7A57',

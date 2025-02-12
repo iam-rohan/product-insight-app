@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, Text, Image, TouchableOpacity, FlatList, StyleSheet, ActivityIndicator } from 'react-native';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { RootStackParamList } from '../types'; // Ensure this file includes the updated RootStackParamList
 import { getPhotos, deletePhoto } from '../database/database';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import { useFocusEffect } from '@react-navigation/native';
 
 
 // Define the type for photos, which should include `rank`
@@ -12,6 +13,21 @@ type Photo = {
   coverPhoto: string;
   ocrPhoto: string;
   rank: string; // Make sure 'rank' is part of the type definition
+  timestamp: number; // Timestamp stored in seconds
+};
+const getTimeAgo = (timestamp: number): string => {
+  const now = Math.floor(Date.now() / 1000); // Current time in seconds
+  const diffInSeconds = now - timestamp;
+
+  if (diffInSeconds < 60) {
+    return `${diffInSeconds} sec ago`;
+  } else if (diffInSeconds < 3600) {
+    return `${Math.floor(diffInSeconds / 60)} min ago`;
+  } else if (diffInSeconds < 86400) {
+    return `${Math.floor(diffInSeconds / 3600)} hrs ago`;
+  } else {
+    return `${Math.floor(diffInSeconds / 86400)} days ago`;
+  }
 };
 
 // Get the color associated with a rank
@@ -60,14 +76,17 @@ const HistoryScreen = () => {
   const loadPhotos = async () => {
     setIsLoading(true);
     const storedPhotos = await getPhotos();
-
-    // Ensure each photo has a rank property (set a default rank if missing)
-    const photosWithRank = storedPhotos.map(photo => ({
-      ...photo,
-      rank: 'C',  
-    }));
-
-    setPhotos(photosWithRank);
+  
+    // Filter out duplicate entries and ensure each photo has a rank
+    const uniquePhotos = storedPhotos.reduce((acc: Photo[], photo) => {
+      const exists = acc.find((p) => p.coverPhoto === photo.coverPhoto);
+      if (!exists && photo.rank) {
+        acc.push(photo);
+      }
+      return acc;
+    }, []);
+  
+    setPhotos(uniquePhotos);
     setIsLoading(false);
   };
 
@@ -82,36 +101,42 @@ const HistoryScreen = () => {
     navigation.navigate('Result', { 
       coverPhoto: photo.coverPhoto,
       ocrPhoto: photo.ocrPhoto,
+      timestamp: photo.timestamp
    
     });// Removed rank from navigation
   };
 
   // Fetch photos when the component mounts
-  useEffect(() => {
-    loadPhotos();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadPhotos();  // Refresh photos when coming back to the screen
+    }, [])
+  );
 
   // Render each item in the FlatList
   // Render each item in the FlatList
-const renderItem = ({ item, index }: { item: Photo; index: number }) => (
-  <TouchableOpacity onPress={() => handlePhotoClick(item)} style={styles.photoItem}>
-    <Image source={{ uri: item.coverPhoto }} style={styles.photoImage} />
-    <View style={styles.photoInfo}>
-      <Text style={styles.photoTitle}>Click {index + 1}</Text>
-      <View style={styles.scanInfo}>
-        <Icon name="undo" size={14} color="#555" style={styles.scanIcon} />
-        <Text style={styles.scanDate}>1 min ago</Text>
+  const renderItem = ({ item, index }: { item: Photo; index: number }) => (
+    <TouchableOpacity onPress={() => handlePhotoClick(item)} style={styles.photoItem}>
+      <Image source={{ uri: item.coverPhoto }} style={styles.photoImage} />
+      <View style={styles.photoInfo}>
+        <Text style={styles.photoTitle}>Click {index + 1}</Text>
+        <View style={styles.scanInfo}>
+          <Icon name="undo" size={14} color="#555" style={styles.scanIcon} />
+          <Text style={styles.scanDate}>{getTimeAgo(item.timestamp)}</Text>
+        </View>
+        <TouchableOpacity onPress={() => handleDelete(item.id)} style={styles.deleteButton}>
+          <Text style={styles.deleteText}>Delete</Text>
+        </TouchableOpacity>
       </View>
-      <TouchableOpacity onPress={() => handleDelete(item.id)} style={styles.deleteButton}>
-        <Text style={styles.deleteText}>Delete</Text>
-      </TouchableOpacity>
-    </View>
-    <Ranker rank={item.rank} />
-  </TouchableOpacity>
+      <Ranker rank={item.rank} />
+    </TouchableOpacity>
 );
 
   return (
     <View style={styles.container}>
+     <View style={styles.header}>
+        <Text style={styles.headerText}>Product History</Text>
+      </View>
       {isLoading ? (
         <ActivityIndicator size="large" color="#3498db" style={styles.loader} />
       ) : (
@@ -122,16 +147,6 @@ const renderItem = ({ item, index }: { item: Photo; index: number }) => (
           contentContainerStyle={styles.list}
         />
       )}
-      <TouchableOpacity onPress={loadPhotos} style={styles.reloadButton}>
-        {isLoading ? (
-          <ActivityIndicator size="small" color="#3498db" />
-        ) : (
-          <>
-            <Icon name="refresh" size={30} color="#3498db" />
-            <Text style={styles.reloadText}>Reload</Text>
-          </>
-        )}
-      </TouchableOpacity>
     </View>
   );
 };
@@ -139,8 +154,20 @@ const renderItem = ({ item, index }: { item: Photo; index: number }) => (
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
+    padding: 0,
     backgroundColor: '#f4f4f4',
+  },
+  header: {
+    width: 'auto',
+    height: 40,
+    backgroundColor: '#3B7A57',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerText: {
+    color: '#ffffff',
+    fontSize: 20,
+    fontWeight: 'bold',
   },
   list: {
     flexGrow: 1,
@@ -187,15 +214,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
   },
-  reloadButton: {
-    alignSelf: 'center',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  reloadText: {
-    display: 'none', 
-  },
-
   loader: {
     marginTop: 20,
   },
