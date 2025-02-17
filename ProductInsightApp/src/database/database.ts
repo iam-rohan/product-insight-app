@@ -45,21 +45,51 @@ export const initDatabase = async () => {
 
 export const storePhotos = async (coverPhoto: string, ocrPhoto: string, rank: RankType = 'C') => {
   return new Promise<void>((resolve, reject) => {
-    const timestamp = Math.floor(Date.now() / 1000); // Ensure correct timestamp format
-    
+    const timestamp = Math.floor(Date.now() / 1000); // Current timestamp
+
     database.transaction(tx => {
+      // Check if the photo already exists
       tx.executeSql(
-        'INSERT INTO Photos (coverPhoto, ocrPhoto, rank, timestamp) VALUES (?, ?, ?, ?)',
-        [coverPhoto, ocrPhoto, rank, timestamp],
-        () => {
-          console.log('Photo stored successfully with rank:', rank);
-          resolve();
+        'SELECT id FROM Photos WHERE coverPhoto = ?',
+        [coverPhoto],
+        (_, result) => {
+          if (result.rows.length > 0) {
+            // If exists, update the rank
+            tx.executeSql(
+              'UPDATE Photos SET rank = ?, timestamp = ? WHERE coverPhoto = ?',
+              [rank, timestamp, coverPhoto],
+              () => {
+                console.log('Photo rank updated successfully:', rank);
+                resolve();
+              },
+              (_, error) => {
+                console.error('Error updating photo rank:', error);
+                reject(error);
+                return true;
+              }
+            );
+          } else {
+            // If not exists, insert new photo
+            tx.executeSql(
+              'INSERT INTO Photos (coverPhoto, ocrPhoto, rank, timestamp) VALUES (?, ?, ?, ?)',
+              [coverPhoto, ocrPhoto, rank, timestamp],
+              () => {
+                console.log('Photo stored successfully with rank:', rank);
+                resolve();
+              },
+              (_, error) => {
+                console.error('Error storing photo:', error);
+                reject(error);
+                return true;
+              }
+            );
+          }
         },
         (_, error) => {
-          console.error('Error storing photo:', error);
+          console.error('Error checking existing photo:', error);
           reject(error);
           return true;
-        },
+        }
       );
     });
   });
