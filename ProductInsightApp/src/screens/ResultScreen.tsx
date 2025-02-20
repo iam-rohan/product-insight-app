@@ -14,10 +14,9 @@ import {RouteProp} from '@react-navigation/native';
 import {recognizeTextFromImage} from '../services/mlkit';
 import {parseIngredients} from '../services/parseIngredients';
 import {computeProductHealthScore} from '../services/scoringService';
-import { storePhotos } from '../database/database';
+import {storePhotos} from '../database/database';
 
-
- type RankType = 'A' | 'B' | 'C' | 'D' | 'E';
+type RankType = 'A' | 'B' | 'C' | 'D' | 'E';
 
 type RootStackParamList = {
   Result: {coverPhoto: string; ocrPhoto: string};
@@ -56,7 +55,7 @@ const Ranker: React.FC<{rank: RankType}> = ({rank}) => {
             styles.rankBox,
             {
               backgroundColor: getRankColor(r),
-              transform: r === rank ? [{ scale: 1.5 }] : [{ scale: 1 }],
+              transform: r === rank ? [{scale: 1.5}] : [{scale: 1}],
               marginHorizontal: r === rank ? 8 : 0, // Increased margin for selected rank
             },
           ]}>
@@ -98,36 +97,37 @@ const ResultScreen: React.FC<ResultScreenProps> = ({route}) => {
     const performOCRAndScoring = async () => {
       try {
         setLoading(true);
-  
+
         const text = await recognizeTextFromImage(ocrPhoto);
         const ingredientList = text ? parseIngredients(text) : [];
         const scoreResult = await computeProductHealthScore(ingredientList);
-  
+
         setHealthScore(scoreResult.overallHealthScore);
         const computedRank = mapScoreToRank(scoreResult.overallHealthScore);
         setRank(computedRank);
-  
-        setRecognizedIngredients(
-          ingredientList.filter(ingredient =>
-            scoreResult.ingredientScores.some(score => score.name === ingredient)
-          )
-        );
+
+        console.log(
+          'Recognized Ingredients:',
+          scoreResult.recognizedIngredients,
+        ); // ✅ Debugging log
+
+        // ✅ Use recognizedIngredients directly from the response
+        setRecognizedIngredients(scoreResult.recognizedIngredients);
         setUnrecognizedIngredients(scoreResult.unrecognizedIngredients);
         setHarmfulFlags(scoreResult.harmfulFlags);
-  
+
         // Store result in the database
         await storePhotos(coverPhoto, ocrPhoto, computedRank);
-  
       } catch (error) {
         console.error('Error during OCR and scoring:', error);
       } finally {
         setLoading(false);
       }
     };
-  
+
     performOCRAndScoring();
   }, [ocrPhoto]);
-  
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>

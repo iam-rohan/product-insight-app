@@ -44,25 +44,17 @@ const SearchScreen: React.FC = () => {
         .map(item => item.trim().toLowerCase());
       const scoreResult = await computeProductHealthScore(ingredientList);
 
-      // Map scores to grades like A,B,C,D,E
-      const gradedIngredients = scoreResult.ingredientScores.map(
-        ({name, score}) => ({
-          name,
-          grade: mapScoreToGrade(score),
-        }),
-      );
+      // ✅ Correctly mapping recognized ingredients with their scores
+      const gradedIngredients = scoreResult.recognizedIngredients.map(name => ({
+        name,
+        grade: mapScoreToGrade(
+          scoreResult.ingredientScores.find(score => score.name === name)
+            ?.score || 0, // Default score to 0 if not found
+        ),
+      }));
 
-      // Separate recognized & unrecognized ingredients
-      const recognized = gradedIngredients;
-      const unrecognized = ingredientList.filter(
-        ingredient =>
-          !scoreResult.ingredientScores.some(
-            score => score.name === ingredient,
-          ),
-      );
-
-      setRecognizedIngredients(recognized);
-      setUnrecognizedIngredients(unrecognized);
+      setRecognizedIngredients(gradedIngredients); // ✅ Corrected assignment
+      setUnrecognizedIngredients(scoreResult.unrecognizedIngredients);
       setHarmfulFlags(scoreResult.harmfulFlags);
 
       // Update search history

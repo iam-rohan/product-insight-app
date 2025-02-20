@@ -9,71 +9,60 @@ export interface IngredientRow {
 }
 
 /**
- * Tokenizes a string into keywords for flexible matching.
+ * Preprocesses ingredient names by normalizing text.
+ * Converts to lowercase, removes special characters, and splits into tokens.
+ * @param {string} name - The ingredient name to preprocess.
+ * @returns {string[]} - Processed tokens.
  */
-function tokenize(text: string): string[] {
-  return text
-    .trim()
+function preprocessIngredientName(name: string): string[] {
+  return name
     .toLowerCase()
-    .split(/[\s,;:-]+/) // Split by common delimiters
-    .filter(word => word.length > 0); // Remove empty tokens
+    .replace(/[^a-z0-9\s]/g, '') // Remove special characters
+    .trim()
+    .split(/\s+/); // Tokenize by whitespace
 }
 
 /**
- * Finds an ingredient row from the JSON data using flexible matching.
- * @param ingredientName The name of the ingredient to find.
- * @returns The matched ingredient row or null if not found.
+ * Builds a fast lookup index for ingredient names.
  */
-export async function findIngredientRowCombined(
+const ingredientIndex = new Map<string, IngredientRow>();
+
+(jsonData as IngredientRow[]).forEach((row: IngredientRow) => {
+  const processedName = preprocessIngredientName(row.shrt_desc).join(' '); // Join tokens as key
+  if (!ingredientIndex.has(processedName)) {
+    ingredientIndex.set(processedName, row);
+  }
+});
+
+/**
+ * Finds an ingredient row using optimized lookup.
+ * - First tries exact match.
+ * - Falls back to partial token-based match if necessary.
+ * @param {string} ingredientName - The name of the ingredient to find.
+ * @returns {IngredientRow | null} - The matched ingredient row or null if not found.
+ */
+export async function findIngredientRow(
   ingredientName: string,
 ): Promise<IngredientRow | null> {
-  const normalizedIngredient = ingredientName.trim().toLowerCase();
-  console.log(`Looking up ingredient: "${normalizedIngredient}"`);
+  const processedName = preprocessIngredientName(ingredientName).join(' ');
 
-  const data = jsonData as IngredientRow[];
-  console.log('Loaded ingredient data (first 5 rows):', data.slice(0, 5));
-
-  // Attempt exact match
-  const exactMatch = data.find((row: IngredientRow) => {
-    const rowNormalized = row.shrt_desc.trim().toLowerCase();
-    return rowNormalized === normalizedIngredient;
-  });
-
-  if (exactMatch) {
+  // **Exact Match**
+  if (ingredientIndex.has(processedName)) {
+    const match = ingredientIndex.get(processedName)!;
     console.log(
-      `Exact match found for "${ingredientName}" -> "${exactMatch.shrt_desc}"`,
+      `Exact match found for "${ingredientName}" -> "${match.shrt_desc}"`,
     );
-    return exactMatch;
+    return match;
   }
 
-  // Attempt partial match (substring match)
-  const partialMatch = data.find((row: IngredientRow) => {
-    const rowNormalized = row.shrt_desc.trim().toLowerCase();
-    return (
-      rowNormalized.includes(normalizedIngredient) ||
-      normalizedIngredient.includes(rowNormalized)
-    );
-  });
-
-  if (partialMatch) {
-    console.log(
-      `Partial match found for "${ingredientName}" -> "${partialMatch.shrt_desc}"`,
-    );
-    return partialMatch;
-  }
-
-  // Attempt keyword-based match
-  const ingredientTokens = tokenize(ingredientName);
-  const keywordMatch = data.find((row: IngredientRow) => {
-    const rowTokens = tokenize(row.shrt_desc);
-    return ingredientTokens.some(token => rowTokens.includes(token));
-  });
-
-  if (keywordMatch) {
-    console.log(
-      `Keyword match found for "${ingredientName}" -> "${keywordMatch.shrt_desc}"`,
-    );
-    return keywordMatch;
+  // **Partial Token Match** (Fallback)
+  for (const [key, row] of ingredientIndex.entries()) {
+    if (key.includes(processedName) || processedName.includes(key)) {
+      console.log(
+        `Partial match found for "${ingredientName}" -> "${row.shrt_desc}"`,
+      );
+      return row;
+    }
   }
 
   console.warn(`No match found for ingredient: "${ingredientName}"`);

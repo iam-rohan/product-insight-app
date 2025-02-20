@@ -1,4 +1,4 @@
-import {findIngredientRowCombined} from './ingredientLookup';
+import {findIngredientRow, IngredientRow} from './ingredientLookup';
 import {scaleInput} from './scaler';
 import {runInference} from './inference';
 
@@ -9,6 +9,7 @@ export async function computeProductHealthScore(
   ingredientScores: Array<{name: string; score: number}>;
   harmfulFlags: {carcinogenic: string[]; preservative: string[]};
   unrecognizedIngredients: string[];
+  recognizedIngredients: string[]; // ✅ Added recognizedIngredients
 }> {
   const requiredFeatures = [
     'water_g',
@@ -34,10 +35,9 @@ export async function computeProductHealthScore(
     'cholestrl_mg',
   ];
 
-  const totalNutrients: {[key: string]: number} = {};
-  for (const col of requiredFeatures) {
-    totalNutrients[col] = 0;
-  }
+  const totalNutrients: {[key: string]: number} = Object.fromEntries(
+    requiredFeatures.map(col => [col, 0]),
+  );
 
   const ingredientScores: Array<{name: string; score: number}> = [];
   const harmfulFlags = {
@@ -45,10 +45,13 @@ export async function computeProductHealthScore(
     preservative: [] as string[],
   };
   const unrecognizedIngredients: string[] = [];
+  const recognizedIngredients: string[] = []; // ✅ Store recognized ingredients
+
+  const ingredientRows: IngredientRow[] = [];
 
   for (const ingName of ingredientNames) {
     console.log(`Processing ingredient: "${ingName}"`);
-    const row = await findIngredientRowCombined(ingName);
+    const row = await findIngredientRow(ingName);
 
     if (!row) {
       console.warn(`No match found for ingredient: "${ingName}"`);
@@ -56,46 +59,63 @@ export async function computeProductHealthScore(
       continue;
     }
 
-    const isCarcinogenic = row.is_carcinogenic === 'TRUE';
-    const isPreservative = row.is_harmful_preservative === 'TRUE';
+    recognizedIngredients.push(row.shrt_desc); // ✅ Add recognized ingredient name
+    ingredientRows.push(row);
 
-    for (const col of requiredFeatures) {
-      const val = row[col] as number;
-      totalNutrients[col] += val || 0;
+    if (row.is_carcinogenic === 'TRUE') {
+      harmfulFlags.carcinogenic.push(row.shrt_desc);
     }
-
-    // Optional: Calculate individual ingredient score using the model
-    const rawFeatures = requiredFeatures.map(col => row[col] as number);
-    const scaled = Array.from(scaleInput(rawFeatures));
-    const ingScore = await runInference(scaled);
-
-    ingredientScores.push({name: ingName, score: ingScore});
-
-    if (isCarcinogenic) {
-      harmfulFlags.carcinogenic.push(ingName);
-    }
-    if (isPreservative) {
-      harmfulFlags.preservative.push(ingName);
+    if (row.is_harmful_preservative === 'TRUE') {
+      harmfulFlags.preservative.push(row.shrt_desc);
     }
   }
 
-  const rawFeatures = requiredFeatures.map(col => totalNutrients[col]);
+  if (ingredientRows.length === 0) {
+    console.warn('No recognized ingredients found. Returning default values.');
+    return {
+      overallHealthScore: 0,
+      ingredientScores: [],
+      harmfulFlags,
+      unrecognizedIngredients,
+      recognizedIngredients,
+    };
+  }
+
+  for (const row of ingredientRows) {
+    for (const col of requiredFeatures) {
+      totalNutrients[col] += (row[col] as number) || 0;
+    }
+  }
 
   console.log('Total nutrients before scaling:', totalNutrients);
 
-  // Convert Float32Array to number[]
-  const scaled = Array.from(scaleInput(rawFeatures));
-  const tflitePrediction = await runInference(scaled);
+  // **Batch Process Ingredient Scores**
+  const rawIngredientFeatures = ingredientRows.map(row =>
+    requiredFeatures.map(col => row[col] as number),
+  );
+  const scaledIngredientInputs = rawIngredientFeatures.map(scaleInput);
+  const ingredientPredictions = await Promise.all(
+    scaledIngredientInputs.map(input => runInference(Array.from(input))),
+  );
 
-  console.log('TFLite raw prediction:', tflitePrediction);
+  ingredientRows.forEach((row, index) => {
+    ingredientScores.push({
+      name: row.shrt_desc,
+      score: ingredientPredictions[index],
+    });
+  });
 
-  let overallHealthScore = tflitePrediction;
+  // **Compute Overall Product Score**
+  const scaled = Array.from(
+    scaleInput(requiredFeatures.map(col => totalNutrients[col])),
+  );
+  let overallHealthScore = await runInference(scaled);
 
   if (harmfulFlags.carcinogenic.length > 0) {
-    overallHealthScore -= 0.5;
+    overallHealthScore *= 0.1; // Reduce drastically if carcinogens are found
   }
   if (harmfulFlags.preservative.length > 0) {
-    overallHealthScore -= 0.3;
+    overallHealthScore *= 0.5; // Reduce moderately for preservatives
   }
 
   overallHealthScore = Math.max(0, Math.min(1, overallHealthScore));
@@ -105,5 +125,6 @@ export async function computeProductHealthScore(
     ingredientScores,
     harmfulFlags,
     unrecognizedIngredients,
+    recognizedIngredients, // ✅ Return recognized ingredients
   };
 }
