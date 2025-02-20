@@ -9,7 +9,7 @@ export async function computeProductHealthScore(
   ingredientScores: Array<{name: string; score: number}>;
   harmfulFlags: {carcinogenic: string[]; preservative: string[]};
   unrecognizedIngredients: string[];
-  recognizedIngredients: string[]; // ✅ Added recognizedIngredients
+  recognizedIngredients: string[];
 }> {
   const requiredFeatures = [
     'water_g',
@@ -33,6 +33,8 @@ export async function computeProductHealthScore(
     'vit_e_mg',
     'vit_d_ug',
     'cholestrl_mg',
+    'is_carcinogenic',
+    'is_harmful_preservative',
   ];
 
   const totalNutrients: {[key: string]: number} = Object.fromEntries(
@@ -45,7 +47,7 @@ export async function computeProductHealthScore(
     preservative: [] as string[],
   };
   const unrecognizedIngredients: string[] = [];
-  const recognizedIngredients: string[] = []; // ✅ Store recognized ingredients
+  const recognizedIngredients: string[] = [];
 
   const ingredientRows: IngredientRow[] = [];
 
@@ -59,13 +61,14 @@ export async function computeProductHealthScore(
       continue;
     }
 
-    recognizedIngredients.push(row.shrt_desc); // ✅ Add recognized ingredient name
+    recognizedIngredients.push(row.shrt_desc);
     ingredientRows.push(row);
 
-    if (row.is_carcinogenic === 'TRUE') {
+    // Updated harmful flag checks (since row.is_carcinogenic and row.is_harmful_preservative are booleans)
+    if (row.is_carcinogenic) {
       harmfulFlags.carcinogenic.push(row.shrt_desc);
     }
-    if (row.is_harmful_preservative === 'TRUE') {
+    if (row.is_harmful_preservative) {
       harmfulFlags.preservative.push(row.shrt_desc);
     }
   }
@@ -125,6 +128,6 @@ export async function computeProductHealthScore(
     ingredientScores,
     harmfulFlags,
     unrecognizedIngredients,
-    recognizedIngredients, // ✅ Return recognized ingredients
+    recognizedIngredients,
   };
 }

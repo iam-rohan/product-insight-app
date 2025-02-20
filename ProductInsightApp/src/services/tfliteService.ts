@@ -11,7 +11,7 @@ let model: TensorflowModel | null = null;
 export async function loadTfliteModel() {
   try {
     // Correct relative path for require
-    const modelPath = require('../assets/health_score_model_v1.tflite');
+    const modelPath = require('../assets/health_score_model_v2.tflite');
     console.log('Resolved model path:', modelPath);
 
     // Load the model using react-native-fast-tflite
